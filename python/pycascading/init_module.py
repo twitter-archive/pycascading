@@ -47,9 +47,9 @@ def load_source(module_name, file_name):
     from com.twitter.pycascading import Util
 
     cascading_jar = Util.getJarFolder()
-    tmp_dir = _remove_last_dir(_remove_last_dir(cascading_jar))
-    sys.path.extend((cascading_jar, tmp_dir + '/python',
-                     tmp_dir + '/python/Lib'))
+    tmp_dir = _remove_last_dir(_remove_last_dir(cascading_jar[0]))
+    sys.path.extend(cascading_jar)
+    sys.path.extend((tmp_dir + '/python', tmp_dir + '/python/Lib'))
     
     # Haha... it's necessary to put this here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,

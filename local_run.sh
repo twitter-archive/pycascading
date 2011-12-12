@@ -47,7 +47,7 @@ jython_libs='jython.jar'
 add2classpath "$jython_libs" "$jython"
 
 # Cascading jars
-cascading_libs='cascading-[0-9].*.jar lib/jgrapht-*.jar'
+cascading_libs='cascading-core-*.jar cascading-hadoop-*.jar lib/cascading-core/*.jar'
 add2classpath "$cascading_libs" "$cascading"
 
 # Hadoop jars

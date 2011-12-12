@@ -40,7 +40,9 @@
         <pathelement location="${build.classes}"/>
 		<path>
 			<fileset dir="${cascading.home}" includes="cascading-core-*.jar" />
-	        <fileset dir="${cascading.home}/lib" includes="jgrapht-jdk1.6-*.jar"/>
+			<fileset dir="${cascading.home}" includes="cascading-hadoop-*.jar" />
+	        <fileset dir="${cascading.home}/lib/cascading-core" includes="*.jar"/>
+	        <fileset dir="${cascading.home}/lib/cascading-xml" includes="*.jar"/>
 		</path>
 		<path>
 			<fileset dir="${hadoop.home}" includes="hadoop-*-core.jar" />
@@ -70,9 +72,9 @@
 		<!-- Copy Cascading & Jython jars -->
 		<copy todir="${build.libs}">
 			<fileset dir="${cascading.home}" includes="cascading-core-*.jar" />
-			<fileset dir="${cascading.home}" includes="cascading-xml-*.jar" />
-			<fileset dir="${cascading.home}/lib" includes="*.jar" />
-			<fileset dir="${cascading.home}/lib/xml" includes="*.jar" />
+			<fileset dir="${cascading.home}" includes="cascading-hadoop-*.jar" />
+			<fileset dir="${cascading.home}/lib/cascading-core" includes="*.jar" />
+			<fileset dir="${cascading.home}/lib/cascading-xml" includes="*.jar" />
 			<fileset dir="${jython.home}" includes="jython.jar" />
 		</copy>
 		

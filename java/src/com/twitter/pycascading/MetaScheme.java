@@ -25,11 +25,14 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.RecordReader;
 
+import cascading.flow.hadoop.HadoopFlowProcess;
 import cascading.scheme.Scheme;
+import cascading.scheme.SinkCall;
+import cascading.scheme.SourceCall;
 import cascading.tap.Tap;
 import cascading.tuple.Fields;
-import cascading.tuple.Tuple;
 import cascading.tuple.TupleEntry;
 
 /**
@@ -42,7 +45,8 @@ import cascading.tuple.TupleEntry;
  * 
  * @author Gabor Szabo
  */
-public class MetaScheme extends Scheme {
+public class MetaScheme extends
+        Scheme<HadoopFlowProcess, JobConf, RecordReader, OutputCollector, Object[], Object[]> {
   private static final long serialVersionUID = 8194175541999063797L;
 
   private static final String schemeFileName = ".pycascading_scheme";
@@ -105,26 +109,28 @@ public class MetaScheme extends Scheme {
   }
 
   @Override
-  public void sourceInit(Tap tap, JobConf conf) throws IOException {
+  public void sourceConfInit(HadoopFlowProcess process, Tap tap, JobConf conf) {
     // We're returning the original storage scheme, so this should not be called
     // ever.
   }
 
   @Override
-  public Tuple source(Object key, Object value) {
+  public boolean source(HadoopFlowProcess flowProcess, SourceCall<Object[], RecordReader> sourceCall)
+          throws IOException {
     // This should never be called.
-    return null;
+    return false;
   }
 
   @Override
-  public void sinkInit(Tap tap, JobConf conf) throws IOException {
-    scheme.sinkInit(tap, conf);
+  public void sinkConfInit(HadoopFlowProcess process, Tap tap, JobConf conf) {
+    scheme.sinkConfInit(process, tap, conf);
   }
 
   @Override
-  public void sink(TupleEntry tupleEntry, OutputCollector outputCollector) throws IOException {
-    // TODO: do it so such that we don't need to specify /user/gabor if the path
-    // doesn't start with /
+  public void sink(HadoopFlowProcess flowProcess, SinkCall<Object[], OutputCollector> sinkCall)
+          throws IOException {
+    OutputCollector outputCollector = sinkCall.getOutput();
+    TupleEntry tupleEntry = sinkCall.getOutgoingEntry();
     if (firstLine) {
       Path path = new Path(outputPath + "/" + headerFileName);
       FileSystem fs = path.getFileSystem(new Configuration());
@@ -181,6 +187,6 @@ public class MetaScheme extends Scheme {
       }
       typeFileToWrite = false;
     }
-    scheme.sink(tupleEntry, outputCollector);
+    scheme.sink(flowProcess, sinkCall);
   }
 }

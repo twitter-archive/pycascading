@@ -15,6 +15,8 @@
 package com.twitter.pycascading;
 
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -22,20 +24,26 @@ import org.python.util.PythonInterpreter;
 
 import cascading.flow.Flow;
 import cascading.flow.FlowConnector;
+import cascading.flow.hadoop.HadoopFlowConnector;
 import cascading.pipe.Pipe;
 import cascading.tap.Tap;
 
 /**
- * Helper cass that sets up the MR environment and runs a Cascading Flow.
+ * Helper class that sets up the MR environment and runs a Cascading Flow.
  * 
  * @author Gabor Szabo
  */
 public class Util {
   // http://www.velocityreviews.com/forums/t147526-how-to-get-jar-file-name.html
-  public static String getJarFolder() {
+  public static List<String> getJarFolder() {
     try {
-      return cascading.pipe.Pipe.class.getProtectionDomain().getCodeSource().getLocation().toURI()
-              .getPath();
+      List<String> jars = new ArrayList<String>();
+      jars.add(cascading.pipe.Pipe.class.getProtectionDomain().getCodeSource().getLocation()
+              .toURI().getPath());
+      // In Cascading 2.0 the Hadoop-specific features are in a different jar
+      jars.add(cascading.tap.hadoop.Hfs.class.getProtectionDomain().getCodeSource().getLocation()
+              .toURI().getPath());
+      return jars;
     } catch (URISyntaxException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -62,7 +70,7 @@ public class Util {
     properties.put("mapred.input.dir.recursive", "true");
     FlowConnector.setApplicationJarClass(properties, Util.class);
 
-    FlowConnector flowConnector = new FlowConnector(properties);
+    FlowConnector flowConnector = new HadoopFlowConnector(properties);
     try {
       Flow flow = flowConnector.connect(sources, sinks, tails);
       // execute the flow, block until complete

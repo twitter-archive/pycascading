@@ -43,6 +43,8 @@ from cascading.operation.filter import *
 from cascading.pipe.assembly import *
 from cascading.scheme import *
 from cascading.tap import *
+from cascading.tap.hadoop import *
+from cascading.scheme.hadoop import TextLine
 
 import com.twitter.pycascading.SelectFields
 from pycascading.pipe import coerce_to_fields

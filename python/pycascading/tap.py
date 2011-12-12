@@ -111,7 +111,7 @@ class Flow(object):
         """
         input_path = expand_path_with_home(input_path)
         source_scheme = MetaScheme.getSourceScheme(input_path)
-        return self.source(cascading.tap.Hfs(source_scheme, input_path))
+        return self.source(cascading.tap.hadoop.Hfs(source_scheme, input_path))
     
     def sink(self, cascading_scheme):
         """A Cascading sink using a Cascading Scheme.
@@ -136,7 +136,7 @@ class Flow(object):
         """
         output_path = expand_path_with_home(output_path)
         sink_scheme = MetaScheme.getSinkScheme(cascading_scheme, output_path)
-        return self.sink(cascading.tap.Hfs(sink_scheme, output_path,
+        return self.sink(cascading.tap.hadoop.Hfs(sink_scheme, output_path,
                                            cascading.tap.SinkMode.REPLACE))
     
     def tsv_sink(self, output_path, fields=Fields.ALL):
@@ -148,7 +148,7 @@ class Flow(object):
         fields -- the fields to store. Defaults to all fields.
         """
         output_path = expand_path_with_home(output_path)
-        return self.meta_sink(cascading.scheme.TextDelimited(fields, '\t'),
+        return self.meta_sink(cascading.scheme.hadoop.TextDelimited(fields, '\t'),
                               output_path)
     
     def binary_sink(self, output_path, fields=Fields.ALL):
@@ -165,7 +165,7 @@ class Flow(object):
             store. Defaults to Fields.ALL.
         """
         output_path = expand_path_with_home(output_path)
-        return self.meta_sink(cascading.scheme.SequenceFile(fields),
+        return self.meta_sink(cascading.scheme.hadoop.SequenceFile(fields),
                               output_path)
 
     def cache(self, identifier, refresh=False):

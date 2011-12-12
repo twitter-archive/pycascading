@@ -38,26 +38,26 @@ def _remove_last_dir(p):
     return p[0 : i]
 
 
-def load_source(module_name, file_name):
-    """Loads the given module from a Python source file.
-    
-    Arguments:
-    module_name -- the name of the variable read the module into
-    file_name -- the file that contains the source for the module 
-    """
-    from com.twitter.pycascading import Util
-
-    cascading_jar = Util.getJarFolder()
-    tmp_dir = _remove_last_dir(_remove_last_dir(cascading_jar))
-    sys.path.extend((cascading_jar, tmp_dir + '/python',
-                     tmp_dir + '/python/Lib'))
-    
-    # Haha... it's necessary to put this here, otherwise simplejson won't work.
-    # Maybe it's automatically imported in the beginning of a Jython program,
-    # but since at that point the sys.path is not set yet to Lib, it will fail?
-    import encodings
-
-    return imp.load_source(module_name, file_name)
+#def load_source(module_name, file_name):
+#    """Loads the given module from a Python source file.
+#    
+#    Arguments:
+#    module_name -- the name of the variable read the module into
+#    file_name -- the file that contains the source for the module 
+#    """
+#    from com.twitter.pycascading import Util
+#
+#    cascading_jar = Util.getJarFolder()
+#    tmp_dir = _remove_last_dir(_remove_last_dir(cascading_jar))
+#    sys.path.extend((cascading_jar, tmp_dir + '/python',
+#                     tmp_dir + '/python/Lib'))
+#    
+#    # Haha... it's necessary to put this here, otherwise simplejson won't work.
+#    # Maybe it's automatically imported in the beginning of a Jython program,
+#    # but since at that point the sys.path is not set yet to Lib, it will fail?
+#    import encodings
+#
+#    return imp.load_source(module_name, file_name)
 
 
 if __name__ == "__main__":
@@ -67,9 +67,12 @@ if __name__ == "__main__":
 
     cascading_jar = Util.getJarFolder()
     # This is the folder where Hadoop extracted the jar file for execution
-    tmp_dir = _remove_last_dir(_remove_last_dir(cascading_jar))
-    sys.path.extend((cascading_jar, '.', tmp_dir, tmp_dir + '/python',
+    tmp_dir = _remove_last_dir(_remove_last_dir(cascading_jar[0]))
+    sys.path.extend(cascading_jar)
+    sys.path.extend(('.', tmp_dir, tmp_dir + '/python',
                      tmp_dir + '/python/Lib'))
+    
+    print '*** this cp:', sys.path
     
     # Haha... it's necessary to put this here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,
