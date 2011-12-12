@@ -1,0 +1,102 @@
+<!--
+	Copyright 2011 Twitter, Inc.
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+-->
+
+<project name="PyCascading" basedir="." default="jar">
+
+	<property file="${basedir}/dependencies.properties" />
+
+	<!-- These need to be set to the locations of the appropriate frameworks -->
+	<property name="cascading.home" location="${cascading}" />
+	<property name="jython.home" location="${jython}" />
+	<property name="hadoop.home" location="${hadoop}" />
+
+	<!-- The location of the sources and build directories -->
+	<property name="java.src" location="${basedir}/java/src" />
+	<property name="build.dir" location="${basedir}/../build" />
+	<property name="build.classes" location="${build.dir}/classes" />
+	<property name="build.libs" location="${build.classes}/lib" />
+	<property name="python.libs" location="${build.classes}/python" />
+
+	<property name="python.dir" value="${basedir}/../python" />
+
+	<!-- Cascading specific properties -->
+	<property file="${cascading.home}/version.properties" />
+	<property name="cascading.release.version" value="${cascading.release.major}.${cascading.release.minor}" />
+
+	<!-- The location of external jars -->
+	<path id="java.classpath">
+        <pathelement location="${build.classes}"/>
+		<path>
+			<fileset dir="${cascading.home}" includes="cascading-core-*.jar" />
+	        <fileset dir="${cascading.home}/lib" includes="jgrapht-jdk1.6-*.jar"/>
+		</path>
+		<path>
+			<fileset dir="${hadoop.home}" includes="hadoop-*-core.jar" />
+		</path>
+		<path>
+			<fileset dir="${jython.home}" includes="jython.jar" />
+		</path>
+    </path>
+
+	<!-- Jython specific properties -->
+	<property name="jython.libs" value="${jython.home}/Lib" />
+
+	<target name="init" description="Initialize the build directories">
+		<tstamp/>
+	  	<mkdir dir="${build.classes}"/>
+	</target>
+
+	<target name="compile" depends="init" description="Compile the Java source">
+        <echo message="Cascading version: ${cascading.release.version}"/>
+		<javac destdir="${build.classes}" deprecation="off">
+			<src path="src" />
+            <classpath refid="java.classpath"/>
+		</javac>
+	</target>
+	
+	<target name="jar" depends="compile" description="Creates a PyCascading jar with dependencies">
+		<!-- Copy Cascading & Jython jars -->
+		<copy todir="${build.libs}">
+			<fileset dir="${cascading.home}" includes="cascading-core-*.jar" />
+			<fileset dir="${cascading.home}" includes="cascading-xml-*.jar" />
+			<fileset dir="${cascading.home}/lib" includes="*.jar" />
+			<fileset dir="${cascading.home}/lib/xml" includes="*.jar" />
+			<fileset dir="${jython.home}" includes="jython.jar" />
+		</copy>
+		
+		<copy todir="${python.libs}">
+			<fileset dir="${python.dir}" />
+		</copy>
+		
+		<copy todir="${python.libs}/Lib">
+			<fileset dir="${jython.libs}" excludes="*.class" />
+		</copy>
+		
+		<jar jarfile="${build.dir}/pycascading.jar">
+			<fileset dir="${build.classes}" />
+
+			<manifest>
+				<!-- the project Main class, by default assumes Main -->
+				<attribute name="Main-Class" value="org.python.util.jython" />
+			</manifest>
+		</jar>
+
+	</target>
+
+	<target name="clean">
+		<delete dir="${build.dir}" />
+	</target>
+
+</project>

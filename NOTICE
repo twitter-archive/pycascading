@@ -1,0 +1,16 @@
+pycascading is a python wrapper for cascading.
+Copyright 2011 Twitter, Inc.
+
+This software has the follow third party dependencies:
+
+Jython 2.5.2
+http://www.jython.org/
+Python Software Foundation License 2.0
+
+Cascading 1.2.4
+http://www.cascading.org/
+GPL 2.0
+
+Hadoop 0.20.2
+http://hadoop.apache.org/
+APL 2.0
