@@ -30,8 +30,8 @@ def split_words(tuple):
         
 def main():
     flow = Flow()
-    input = flow.source(Hfs(TextLine(), 'data/town.txt'))
-    output = flow.tsv_sink('data/out')
+    input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
+    output = flow.tsv_sink('pycascading_data/out')
     
     input | split_words | GroupBy('word') | Count() | output
     

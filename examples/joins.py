@@ -32,11 +32,13 @@ def upper_case(tuple):
 def main():
     flow = Flow()
     lhs = flow.source(Hfs(TextDelimited(Fields(['col1', 'col2']), ' ',
-                                        [Integer, String]), 'data/lhs.txt'))
+                                        [Integer, String]),
+                          'pycascading_data/lhs.txt'))
     rhs = flow.source(Hfs(TextDelimited(Fields(['col1', 'col2']), ' ',
-                                        [Integer, String]), 'data/rhs.txt'))
-    output1 = flow.tsv_sink('data/out1')
-    output2 = flow.tsv_sink('data/out2')
+                                        [Integer, String]),
+                          'pycascading_data/rhs.txt'))
+    output1 = flow.tsv_sink('pycascading_data/out1')
+    output2 = flow.tsv_sink('pycascading_data/out2')
 
     # Join on the first columns ('col1' for both) of lhs and rhs inputs
     # We need to use declared_fields if the field names

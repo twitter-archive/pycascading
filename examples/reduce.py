@@ -54,8 +54,8 @@ def count(group, tuples):
 
 def main():
     flow = Flow()
-    input = flow.source(Hfs(TextLine(), 'data/town.txt'))
-    output = flow.tsv_sink('data/out')
+    input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
+    output = flow.tsv_sink('pycascading_data/out')
     
     p = input | starts_with_letter('A') | word_count
     p | GroupBy('word_count') | count | output
