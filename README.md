@@ -39,13 +39,14 @@ Usage
 -----
 
 PyCascading may be used in one of two modes: in local Hadoop mode or with
-remote Hadoop deployment.
+remote Hadoop deployment. Please note that you need to specify the locations
+of the dependencies in the java/dependencies.properties file.
 
 In *local mode*, the script is executed in Hadoop's local mode. All files
 reside on the local file system, and creating a bundled deployment jar is not
 necessary.
 
-To run in this mode, use the script local_run.sh, with the first parameter
+To run in this mode, use the script *local_run.sh*, with the first parameter
 being the PyCascading script. Additional command line parameters may be used
 to pass on to the script.
 
@@ -58,6 +59,9 @@ once, and whenever a new PyCascading script is run by the user, only the
 Pythn script is copied to the remote server and bundled there for submission
 to Hadoop. The first few variables in the remote_deploy.sh script specify
 the Hadoop server and the folders where the deployment files should be placed. 
+
+Use the remote_deploy.sh script to deploy a PyCascading script to the remote
+Hadoop server.
 
 
 Building
@@ -112,11 +116,9 @@ https://github.com/twitter/pycascading/issues
 Mailing list
 ------------
 
-Have a question? Ask on our mailing list!
+Currently we are using the cascading-user mailing list for discussions.
 
-pycascading@googlegroups.com
-
-http://groups.google.com/group/pycascading
+http://groups.google.com/group/cascading-user
 
 
 Authors
