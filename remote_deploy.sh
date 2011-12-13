@@ -52,7 +52,7 @@ EOF
 build_first=no
 declare -a files_to_copy
 
-while getopts ":hbf:" OPTION; do
+while getopts ":hbf:s:" OPTION; do
 	case $OPTION in
 		h)	usage
          	exit 1
@@ -61,7 +61,7 @@ while getopts ":hbf:" OPTION; do
         	;;
         f)	files_to_copy=("${files_to_copy[@]}" "$OPTARG")
         	;;
-        s)	server="$OPTIND"
+        s)	server="$OPTARG"
         	;;
 	esac
 done

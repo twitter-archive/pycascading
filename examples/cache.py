@@ -56,8 +56,8 @@ def main():
         return
     
     flow = Flow()
-    input = flow.source(Hfs(TextLine(), 'data/town.txt'))
-    output = flow.tsv_sink('data/out')
+    input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
+    output = flow.tsv_sink('pycascading_data/out')
     
     # Select the lines beginning with 'A', and save this intermediate result
     # in the cache so that we can call the script several times with

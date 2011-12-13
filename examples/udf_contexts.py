@@ -35,8 +35,8 @@ def starts_with_letters(tuple, letters):
 
 def main():
     flow = Flow()
-    input = flow.source(Hfs(TextLine(), 'data/town.txt'))
-    output = flow.tsv_sink('data/out')
+    input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
+    output = flow.tsv_sink('pycascading_data/out')
     
     input | starts_with_letters(set(['A', 'T'])) | SelectFields('line') | output
     

@@ -86,7 +86,7 @@ Versioning
 ----------
 
 For transparency and insight into our release cycle, and for striving to
-maintain backwards compatibility, pycascading will be maintained under the
+maintain backwards compatibility, PyCascading will be maintained under the
 semantic versioning guidelines as much as possible. Releases will be numbered
 with the follow format:
 
