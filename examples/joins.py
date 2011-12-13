@@ -15,9 +15,9 @@
 
 """Example demonstrating the use of joining and splitting of streams.
 
-The data is expected in the data/ folder if run in local mode, and in the
-data/ folder in the user's HDFS home if run with Hadoop. These files were
-copied from the Cascading examples. 
+The data is expected in the pycascading_data/ folder if run in local mode,
+and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop. 
+These files were copied from the Cascading examples. 
 """
 
 from pycascading.helpers import *
