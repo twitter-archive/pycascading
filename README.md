@@ -116,11 +116,9 @@ https://github.com/twitter/pycascading/issues
 Mailing list
 ------------
 
-Have a question? Ask on our mailing list!
+Currently we are using the cascading-user mailing list for discussions.
 
-pycascading@googlegroups.com
-
-http://groups.google.com/group/pycascading
+http://groups.google.com/group/cascading-user
 
 
 Authors
