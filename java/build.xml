@@ -60,7 +60,8 @@
 
 	<target name="compile" depends="init" description="Compile the Java source">
         <echo message="Cascading version: ${cascading.release.version}"/>
-		<javac destdir="${build.classes}" deprecation="off">
+		<javac destdir="${build.classes}" deprecation="off"
+			debug="on" debuglevel="lines,vars,source">
 			<src path="src" />
             <classpath refid="java.classpath"/>
 		</javac>
