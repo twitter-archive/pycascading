@@ -176,7 +176,7 @@ public class MetaScheme extends
       try {
         if (fs.createNewFile(path)) {
           FSDataOutputStream stream = fs.create(path, true);
-          for (int i = 0; i < tupleEntry.size(); i++) {
+          for (int i = 0; i < tupleEntry.getFields().size(); i++) {
             Object object = tupleEntry.getObject(i);
             Class<?> objectClass = (object == null ? Object.class : object.getClass());
             stream.writeBytes(tupleEntry.getFields().get(i) + "\t" + objectClass.getName() + "\n");
