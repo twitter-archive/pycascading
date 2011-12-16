@@ -185,7 +185,7 @@ class Flow(object):
         """
         return _Cache(self, identifier, refresh)
     
-    def run(self, num_reducers=100, config=None):
+    def run(self, num_reducers=50, config=None):
         """Start the Cascading job.
         
         We call this when we are done building the pipeline and explicitly want

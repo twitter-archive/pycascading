@@ -90,7 +90,7 @@
 
 			<manifest>
 				<!-- the project Main class, by default assumes Main -->
-				<attribute name="Main-Class" value="org.python.util.jython" />
+				<attribute name="Main-Class" value="com.twitter.pycascading.Util" />
 			</manifest>
 		</jar>
 
