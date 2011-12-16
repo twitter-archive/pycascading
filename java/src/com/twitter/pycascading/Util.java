@@ -87,6 +87,6 @@ public class Util {
     props.put("python.cachedir.skip", "0");
     PythonInterpreter.initialize(System.getProperties(), props, args);
     PythonInterpreter interpreter = new PythonInterpreter();
-    interpreter.execfile(getJarFolder() + args[0]);
+    interpreter.execfile(System.getProperty("user.dir") + "/" + args[0]);
   }
 }

@@ -127,7 +127,7 @@ chmod +x $tmp_dir/setup.sh
 cat >$tmp_dir/run.sh <<EOF
 home_dir=\$(readlink -f "\`dirname \"\$0\"\`")
 cd "\$home_dir/sources"
-hadoop jar ../deploy.jar -Dpython.cachedir='$HOME/.jython-cache' -Dpython.cachedir.skip=0 ../bootstrap.py hadoop "$main_file" "\$@"
+hadoop jar ../deploy.jar ../bootstrap.py hadoop "$main_file" "\$@"
 EOF
 chmod +x $tmp_dir/run.sh
 
