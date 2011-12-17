@@ -37,11 +37,11 @@ arguments.
 To try the examples, first build the Java sources as described below in the
 Building section. Then, change to the 'examples' folder, and issue either
 
-../local_run.sh <example.py>
+../local_run.sh example.py
 
 for a simulated Hadoop local run, or
 
-../remote_deploy.sh -m -s <hadoop_server> <example.py>
+../remote_deploy.sh -m -s hadoop_server example.py
 
 to deploy automatically on a Hadoop server. hadoop_server is the SSH address
 of an account where the master jar and script will be scp'd to. Note that the
