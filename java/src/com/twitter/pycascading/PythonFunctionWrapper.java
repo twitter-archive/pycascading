@@ -101,7 +101,7 @@ public class PythonFunctionWrapper implements Serializable {
     runningMode = (RunningMode) stream.readObject();
 
     getPythonInterpreter();
-    String jarDir = getJarFolder();
+    String jarDir = Util.getJarFolder();
     interpreter.execfile(jarDir + "python/pycascading/init_module.py");
     interpreter.set("module_name", "m");
     interpreter.set("file_name", (runningMode == RunningMode.LOCAL ? "" : jarDir) + sourceFile);

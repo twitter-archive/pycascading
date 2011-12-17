@@ -32,15 +32,35 @@ import cascading.tap.Tap;
  */
 public class Util {
   // http://www.velocityreviews.com/forums/t147526-how-to-get-jar-file-name.html
+  /**
+   * Get the temporary folder where the job jar was extracted to by Hadoop.
+   * 
+   * TODO: This only works if we distribute PyCascading as classes. If I will
+   * switch to using jars, I need to remove the last part of the path which is
+   * the jar file.
+   * 
+   * @return the temporary folder with the contents of the job jar
+   */
   public static String getJarFolder() {
+    try {
+      return Util.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+    } catch (URISyntaxException e) {
+      throw new RuntimeException("Could not get temporary job folder");
+    }
+  }
+
+  /**
+   * Get the Cascading jar file on the local file system.
+   * 
+   * @return the file location on the Hadoop worker for the Cascading jar
+   */
+  public static String getCascadingJar() {
     try {
       return cascading.pipe.Pipe.class.getProtectionDomain().getCodeSource().getLocation().toURI()
               .getPath();
     } catch (URISyntaxException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      throw new RuntimeException("Could not get the location of the Cascading jar");
     }
-    return null;
   }
 
   public static void run(int numReducers, Map<String, Object> config, Map<String, Tap> sources,

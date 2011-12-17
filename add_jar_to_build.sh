@@ -46,14 +46,17 @@ if [ $# -eq 0 ]; then
     exit
 fi
 
-home_dir=$(readlink -f "`dirname \"$0\"`")
+home_dir=$(pwd)
+pycascading_dir=$(readlink -f "`dirname \"$0\"`")
+
 for j in "$@"; do
     echo -n "Adding $j..."
+    jar=$(readlink -f "$j")
     temp=$(mktemp -d)
     cd "$temp"
-    jar xf "$home_dir/$j"
-    rm -rf META-INF/ 2>/dev/null
-    jar uf "$home_dir/build/pycascading.jar" .
+    jar xf "$jar"
+    rm -rf META-INF/MANIFEST.MF 2>/dev/null
+    jar uf "$pycascading_dir/build/pycascading.jar" .
     cd "$home_dir"
     rm -rf "$temp"
     echo " done."
