@@ -45,9 +45,9 @@ for a simulated Hadoop local run, or
 
 to deploy automatically on a Hadoop server. hadoop_server is the SSH address
 of an account where the master jar and script will be scp'd to. Note that the
-'-m' option only has to be used once in the beginning (this command copied the
-master jar to the server, and any subsequent deploys will use this master jar,
-and only a small amount of data will be copied over the network).
+'-m' option has to be used only once in the beginning. The '-m' option copies
+the master jar to the server, and any subsequent deploys will use this master
+jar, and only the actual Python script will be copied over the network.
 
 
 Usage
