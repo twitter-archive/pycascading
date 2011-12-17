@@ -7,7 +7,7 @@
 # You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,7 +38,7 @@ copied to the remote server and submitted together with the job to Hadoop.
 
 Options:
    -h           Show this message
-   -b           Build PyCascading first before submitting job
+   -m           Also deploy the PyCascading master jar before submitting job
    -f <file>    Copy file to the server together with main_script, but do not
    				bundle it into the Hadoop jar for submission. This option may
    				be repeated several times for multiple files. File names cannot
@@ -49,15 +49,15 @@ Options:
 EOF
 }
 
-build_first=no
+master_first=no
 declare -a files_to_copy
 
-while getopts ":hbf:s:" OPTION; do
+while getopts ":hmf:s:" OPTION; do
 	case $OPTION in
 		h)	usage
          	exit 1
          	;;
-        b)	build_first=yes
+        m)	master_first=yes
         	;;
         f)	files_to_copy=("${files_to_copy[@]}" "$OPTARG")
         	;;
@@ -68,7 +68,7 @@ done
 shift $((OPTIND-1))
 
 main_file="$1"
-if [ "$main_file" == "" -a $build_first == no ]; then
+if [ "$main_file" == "" -a $master_first == no ]; then
 	usage
 	exit 3
 fi
@@ -76,11 +76,12 @@ fi
 home_dir=$(readlink -f "`dirname \"$0\"`")
 tmp_dir="`mktemp -d`"
 
-if [ $build_first == yes ]; then
-	if ant -f $home_dir/java/build.xml; then
-		ln -s $home_dir/build/pycascading.jar $home_dir/python/pycascading/bootstrap.py $tmp_dir
+if [ $master_first == yes ]; then
+    master="$home_dir/build/pycascading.jar"
+	if [ -a "$master" ]; then
+		ln -s "$master" $home_dir/python/pycascading/bootstrap.py $tmp_dir
 	else
-		echo Build was unsuccessful, terminating.
+	    echo Build the PyCascading master jar first in the \'java\' folder with ant. 
 		exit 2
 	fi
 fi
