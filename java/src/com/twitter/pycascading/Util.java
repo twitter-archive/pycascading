@@ -77,7 +77,7 @@ public class Util {
     // properties.put("mapred.map.tasks", 4000);
     // So that Thrift classes can be serialized
     properties.put("io.serializations",
-            "com.twitter.pycascading.bigintegerserialization.BigIntegerSerialization");
+            "com.twitter.pycascading.bigintegerserialization.BigIntegerSerialization,org.apache.hadoop.io.serializer.WritableSerialization");
     properties.put("mapred.jobtracker.completeuserjobs.maximum", 50000);
     properties.put("mapred.input.dir.recursive", "true");
     FlowConnector.setApplicationJarClass(properties, Util.class);
