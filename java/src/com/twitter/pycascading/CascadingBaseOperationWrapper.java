@@ -132,8 +132,19 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     return 0;
   }
 
+  // i dont know a better way to do this
+  private boolean isFunctionWrapper(PyObject value) {
+    return value.getType().toString().equals("<type 'com.twitter.pycascading.PythonFunctionWrapper'>");
+  }
+
+  private PyObject unwrap(PyObject value) {
+    PythonFunctionWrapper wrapper = (PythonFunctionWrapper) value.__tojava__(PythonFunctionWrapper.class);
+    return wrapper.getPythonFunction();
+  }
+
   /**
-   * Sets up the local variables that were not serialized for optimizations.
+   * Sets up the local variables that were not serialized for optimizations
+   * and unwraps arguments wrapped with PythonFunctionWrapper
    */
   protected void setupArgs() {
     int numArgs = getNumParameters();
@@ -143,6 +154,9 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     if (contextArgs != null) {
       PyObject[] args = contextArgs.getArray();
       for (PyObject arg : args) {
+        if (isFunctionWrapper(arg)) {
+            arg = unwrap(arg);
+        }
         callArgs[i] = arg;
         i++;
       }
@@ -151,6 +165,9 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
       PyIterator values = (PyIterator) contextKwArgs.itervalues();
       PyObject value = values.__iternext__();
       while (value != null) {
+        if (isFunctionWrapper(value)) {
+            value = unwrap(value);
+        }
         callArgs[i] = value;
         value = values.__iternext__();
         i++;

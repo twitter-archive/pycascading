@@ -33,6 +33,7 @@ random_pipe_name
 __author__ = 'Gabor Szabo'
 
 
+import types
 import cascading.pipe
 import cascading.tuple
 import cascading.operation
@@ -268,6 +269,7 @@ class DecoratedFunction(Operation):
         to store the parameters passed to it so that we can distribute them
         to workers as a shared context.
         """
+        args, kwargs = self._wrap_argument_functions(args, kwargs)
         if args:
             self.decorators['args'] = args
         if kwargs:
@@ -288,6 +290,28 @@ class DecoratedFunction(Operation):
             raise Exception
         ('Function was not annotated with @map(), @filter(), or @reduce()')
 
+    def _wrap_argument_functions(self, args, kwargs):
+        """
+        Just like the nested function, any arguments that are functions have to be wrapped
+        """
+        def wrap(function):
+            wrapped = PythonFunctionWrapper(function)
+            if running_mode == 'local':
+                wrapped.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)
+            else:
+                wrapped.setRunningMode(PythonFunctionWrapper.RunningMode.HADOOP)
+            return wrapped
+            
+        for i in range(0,len(args)):
+            args_out = []
+            if type(args[i]) == types.FunctionType:
+                args_out.append(wrap(args[i]))
+            else:
+                args_out.append(args[i])
+        for key in kwargs:
+            if type(kwargs[key]) == types.FunctionType:
+                kwargs[key] = wrap(kwargs[key])
+        return (args, kwargs)
 
 class _Each(Operation):
     
