@@ -120,26 +120,6 @@ public class PythonFunctionWrapper implements Serializable {
   }
 
   /**
-   * Get the folder where the JAR package was extracted to. All the sources are
-   * found in this folder.
-   * 
-   * TODO: This only works if we distribute PyCascading as classes. If I will
-   * switch to using jars, I need to remove the last part of the path which is
-   * the jar file.
-   * 
-   * @return the folder on the mapper or reducer where the job was extracted to
-   */
-  private String getJarFolder() {
-    try {
-      String jarFolder = Util.class.getProtectionDomain().getCodeSource().getLocation().toURI()
-              .getPath();
-      return jarFolder;
-    } catch (URISyntaxException e) {
-      throw new RuntimeException("Could not determine JAR folder for PyCascading job");
-    }
-  }
-
-  /**
    * Start a new Jython interpreter if it's not started yet.
    * 
    * @return the interpreter instance
