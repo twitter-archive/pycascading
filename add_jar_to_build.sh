@@ -49,15 +49,15 @@ fi
 home_dir=$(pwd)
 pycascading_dir=$(readlink -f "`dirname \"$0\"`")
 
+temp=$(mktemp -d)
 for j in "$@"; do
     echo -n "Adding $j..."
     jar=$(readlink -f "$j")
-    temp=$(mktemp -d)
     cd "$temp"
     jar xf "$jar"
     rm -rf META-INF/MANIFEST.MF 2>/dev/null
     jar uf "$pycascading_dir/build/pycascading.jar" .
     cd "$home_dir"
-    rm -rf "$temp"
     echo " done."
 done
+rm -rf "$temp"
