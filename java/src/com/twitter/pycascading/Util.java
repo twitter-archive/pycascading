@@ -76,8 +76,12 @@ public class Util {
     // properties.put("mapred.min.split.size", 20 * 1024 * 1024 * 1024L);
     // properties.put("mapred.map.tasks", 4000);
     // So that Thrift classes can be serialized
+    // We need to add WritableSerialization otherwise sometimes Cascading and
+    // Hadoop don't pick it up, and BigInteger serializations fail
+    // See https://github.com/twitter/pycascading/issues/2
+    // TODO: find the reason for this
     properties.put("io.serializations",
-            "com.twitter.pycascading.bigintegerserialization.BigIntegerSerialization");
+            "com.twitter.pycascading.bigintegerserialization.BigIntegerSerialization,org.apache.hadoop.io.serializer.WritableSerialization");
     properties.put("mapred.jobtracker.completeuserjobs.maximum", 50000);
     properties.put("mapred.input.dir.recursive", "true");
     FlowConnector.setApplicationJarClass(properties, Util.class);
