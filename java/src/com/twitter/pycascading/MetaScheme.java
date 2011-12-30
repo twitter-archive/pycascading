@@ -67,9 +67,9 @@ public class MetaScheme extends Scheme {
   public static Scheme getSourceScheme(String inputPath) throws IOException {
     Path path = new Path(inputPath + "/" + schemeFileName);
     FileSystem fs = path.getFileSystem(new Configuration());
-    FSDataInputStream file = fs.open(path);
-    ObjectInputStream ois = new ObjectInputStream(file);
     try {
+      FSDataInputStream file = fs.open(path);
+      ObjectInputStream ois = new ObjectInputStream(file);
       Scheme scheme = (Scheme) ois.readObject();
       Fields fields = (Fields) ois.readObject();
       scheme.setSourceFields(fields);
