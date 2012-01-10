@@ -44,6 +44,7 @@
 		</path>
 		<path>
 			<fileset dir="${hadoop.home}" includes="hadoop-*-core.jar" />
+			<fileset dir="${hadoop.home}" includes="hadoop-core-*.jar" />
 		</path>
 		<path>
 			<fileset dir="${jython.home}" includes="jython.jar" />
