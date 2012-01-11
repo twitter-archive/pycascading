@@ -118,7 +118,7 @@ if [ -e sources ]; then
 		echo On $server run with:
 		echo "   \$deploy_dir/run.sh [parameters]"
 	else
-		echo The PyCascading master jar has not yet been deployed, do a \"remote_deploy.sh -b\" first.
+		echo The PyCascading master jar has not yet been deployed, do a \"remote_deploy.sh -m\" first.
 	fi
 fi
 EOF
