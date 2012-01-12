@@ -81,7 +81,8 @@ public class Util {
     // See https://github.com/twitter/pycascading/issues/2
     // TODO: find the reason for this
     properties.put("io.serializations",
-            "com.twitter.pycascading.bigintegerserialization.BigIntegerSerialization,org.apache.hadoop.io.serializer.WritableSerialization");
+            "com.twitter.pycascading.bigintegerserialization.BigIntegerSerialization,"
+                    + "org.apache.hadoop.io.serializer.WritableSerialization");
     properties.put("mapred.jobtracker.completeuserjobs.maximum", 50000);
     properties.put("mapred.input.dir.recursive", "true");
     FlowConnector.setApplicationJarClass(properties, Util.class);
