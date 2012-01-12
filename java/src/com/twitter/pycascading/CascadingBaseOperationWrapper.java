@@ -122,7 +122,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   }
 
   /**
-   * We assume that the Python functions (apply and buffer) are always called
+   * We assume that the Python functions (map and reduce) are always called
    * with the same number of arguments. Override this to return the number of
    * arguments we will be passing in all the time.
    * 
@@ -132,19 +132,24 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     return 0;
   }
 
-  // i dont know a better way to do this
-  private boolean isFunctionWrapper(PyObject value) {
-    return value.getType().toString().equals("<type 'com.twitter.pycascading.PythonFunctionWrapper'>");
-  }
-
-  private PyObject unwrap(PyObject value) {
-    PythonFunctionWrapper wrapper = (PythonFunctionWrapper) value.__tojava__(PythonFunctionWrapper.class);
-    return wrapper.getPythonFunction();
+  /**
+   * We may pass in Python functions as an argument to UDFs. In this case we
+   * have to wrap these the same way we wrapped the UDFs, and need to unwrap
+   * them at deserialization.
+   * 
+   * @return the original argument to the UDF before serialization
+   */
+  private PyObject getOriginalArg(PyObject arg) {
+    Object result = arg.__tojava__(PythonFunctionWrapper.class);
+    if (result == Py.NoConversion)
+      return arg;
+    else
+      return ((PythonFunctionWrapper) result).getPythonFunction();
   }
 
   /**
    * Sets up the local variables that were not serialized for optimizations
-   * and unwraps arguments wrapped with PythonFunctionWrapper
+   * and unwraps function arguments wrapped with PythonFunctionWrapper.
    */
   protected void setupArgs() {
     int numArgs = getNumParameters();
@@ -154,10 +159,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     if (contextArgs != null) {
       PyObject[] args = contextArgs.getArray();
       for (PyObject arg : args) {
-        if (isFunctionWrapper(arg)) {
-            arg = unwrap(arg);
-        }
-        callArgs[i] = arg;
+        callArgs[i] = getOriginalArg(arg);
         i++;
       }
     }
@@ -165,10 +167,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
       PyIterator values = (PyIterator) contextKwArgs.itervalues();
       PyObject value = values.__iternext__();
       while (value != null) {
-        if (isFunctionWrapper(value)) {
-            value = unwrap(value);
-        }
-        callArgs[i] = value;
+        callArgs[i] = getOriginalArg(value);
         value = values.__iternext__();
         i++;
       }

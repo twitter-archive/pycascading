@@ -74,7 +74,7 @@ def coerce_to_fields(obj):
 
 def random_pipe_name(prefix):
     """Generate a random string that can be used to name pipes.
-    
+
     Otherwise Cascading always gets confused.
     """
     import random
@@ -84,14 +84,23 @@ def random_pipe_name(prefix):
     return prefix + ' ' + id
 
 
+def _python_function_to_java(function):
+    """Create the serializable Java object for a Python function."""
+    wrapped_func = PythonFunctionWrapper(function)
+    if running_mode == 'local':
+        wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)
+    else:
+        wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.HADOOP)
+    return wrapped_func
+
+
 def _wrap_function(function, casc_function_type):
-    """Wraps a Python function into a Serializable and callable Java object.
-    
+    """Wrap a Python function into a Serializable and callable Java object.
     This wrapping is necessary as Cascading serializes the job pipeline before
     it sends the job to the workers. We need to in essence reconstruct the
     Python function from source on the receiving end when we deserialize the
     function, as Python is an interpreted language.
-    
+
     Arguments:
     function -- either a Cascading Operation, a PyCascading-decorated Python
         function, or a native Python function
@@ -121,17 +130,13 @@ def _wrap_function(function, casc_function_type):
     else:
         # When function is a pure Python function, declared without decorators
         fw = casc_function_type()
-    wrapped_func = PythonFunctionWrapper(function)
-    if running_mode == 'local':
-        wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)
-    else:
-        wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.HADOOP)
+    wrapped_func = _python_function_to_java(function)
     fw.setFunction(wrapped_func)
     return fw
 
 
 class _Stackable(object):
-    
+
     """An object that can be chained with '&' operations."""
 
     def __init__(self):
@@ -168,13 +173,13 @@ class Chainable(_Stackable):
         """
         # Cannot use extend because of the strings
         self.context.update(ctx)
-    
+
     def get_assembly(self):
         """Return the Cascading Pipe instance that this object represents."""
         if self._assembly == None:
             self._assembly = self._create_without_parent()
         return self._assembly
-    
+
     def __or__(self, other):
         result = Chainable()
         if isinstance(other, cascading.operation.Aggregator):
@@ -188,7 +193,7 @@ class Chainable(_Stackable):
             result.add_context(self.context)
             result.hash = self.hash ^ hash(result._assembly)
         return result
-    
+
     def _create_without_parent(self):
         """Called when the Chainable is the first member of a chain.
         
@@ -196,7 +201,7 @@ class Chainable(_Stackable):
         member.
         """
         raise Exception('Cannot create without parent')
-    
+
     def _create_with_parent(self, parent):
         """Called when the Chainable is NOT the first member of a chain.
         
@@ -210,28 +215,28 @@ class Chainable(_Stackable):
 
 
 class Pipe(Chainable):
-    
+
     """The basic PyCascading Pipe object.
     
     This represents an operation on the tuple stream. A Pipe object can has an
     upstream parent (unless it is a source), and a downstream child (unless it
     is a sink).
     """
-    
+
     def __init__(self, name=None, *args):
         Chainable.__init__(self)
         if name:
             self.__name = name
         else:
             self.__name = 'unnamed'
-    
+
     def _create_without_parent(self):
         """
         Create the Cascading operation when this is the first element of a
         chain.
         """
         return cascading.pipe.Pipe(self.__name)
-    
+
     def _create_with_parent(self, parent):
         """
         Create the Cascading operation when this is not the first element
@@ -241,28 +246,28 @@ class Pipe(Chainable):
 
 
 class Operation(Chainable):
-    
+
     """A common base class for all operations (Functions, Filters, etc.).
     
     It doesn't do anything just provides the class.
     """
-    
+
     def __init__(self):
         Chainable.__init__(self)
 
 
 class DecoratedFunction(Operation):
-    
+
     """Decorates Python functions with arbitrary attributes.
 
     Additional attributes and the original functions are stored in a dict
     self.decorators.
     """
-    
+
     def __init__(self):
         Operation.__init__(self)
         self.decorators = {}
-        
+
     def __call__(self, *args, **kwargs):
         """
         When we call the function we don't actually want to execute it, just
@@ -275,7 +280,7 @@ class DecoratedFunction(Operation):
         if kwargs:
             self.decorators['kwargs'] = kwargs
         return self
-        
+
     def _create_with_parent(self, parent):
         """
         Use the appropriate operation when the function is used in the pipe.
@@ -292,36 +297,30 @@ class DecoratedFunction(Operation):
 
     def _wrap_argument_functions(self, args, kwargs):
         """
-        Just like the nested function, any arguments that are functions have to be wrapped
+        Just like the nested function, any arguments that are functions
+        have to be wrapped.
         """
-        def wrap(function):
-            wrapped = PythonFunctionWrapper(function)
-            if running_mode == 'local':
-                wrapped.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)
+        args_out = []
+        for arg in args:
+            if type(arg) == types.FunctionType:
+                args_out.append(_python_function_to_java(arg))
             else:
-                wrapped.setRunningMode(PythonFunctionWrapper.RunningMode.HADOOP)
-            return wrapped
-            
-        for i in range(0,len(args)):
-            args_out = []
-            if type(args[i]) == types.FunctionType:
-                args_out.append(wrap(args[i]))
-            else:
-                args_out.append(args[i])
+                args_out.append(arg)
         for key in kwargs:
             if type(kwargs[key]) == types.FunctionType:
-                kwargs[key] = wrap(kwargs[key])
-        return (args, kwargs)
+                kwargs[key] = _python_function_to_java(kwargs[key])
+        return (tuple(args_out), kwargs)
+
 
 class _Each(Operation):
-    
+
     """The equivalent of Each in Cascading.
     
     We need to wrap @maps and @filters with different Java classes, but
     the constructors for Each are built similarly. This class provides this
     functionality.
     """
-    
+
     def __init__(self, function_type, *args):
         """Build the Each constructor for the Python function.
         
@@ -331,11 +330,11 @@ class _Each(Operation):
         *args -- the arguments passed on to Cascading Each
         """
         Operation.__init__(self)
-        
+
         self.__function = None
         self.__argument_selector = None
         self.__output_selector = None
-        
+
         if len(args) == 1:
             self.__function = args[0]
         elif len(args) == 2:
@@ -382,9 +381,9 @@ class Filter(_Each):
 
 
 class Every(Operation):
-    
+
     """Apply an operation to a group of tuples.
-    
+
     This operation is similar to Apply, but can only follow a GroupBy or
     CoGroup. It runs a Cascading Aggregator or Buffer on every grouping.
     Native Java aggregators or buffers may be used, and also PyCascading
@@ -396,7 +395,7 @@ class Every(Operation):
 
     def __init__(self, *args, **kwargs):
         """Create a Cascading Every pipe.
-        
+
         Keyword arguments:
         aggregator -- a Cascading aggregator (only either aggregator or buffer
             should be used)
@@ -409,7 +408,7 @@ class Every(Operation):
         Operation.__init__(self)
         self.__args = args
         self.__kwargs = kwargs
-        
+
     def __create_args(self,
                       pipe=None,
                       aggregator=None, output_selector=None,
@@ -453,12 +452,12 @@ class Every(Operation):
 
 
 class GroupBy(Operation):
-    
+
     """GroupBy first merges the given pipes, then groups by the fields given.
     
     This class does the same as the corresponding Cascading GroupBy.
     """
-    
+
     def __init__(self, *args, **kwargs):
         """Create a Cascading Every pipe.
         
@@ -510,7 +509,7 @@ class GroupBy(Operation):
             args.append(rhs_pipe.get_assembly())
             args.append(coerce_to_fields(group_fields))
         return args
-            
+
     def _create_with_parent(self, parent):
         if isinstance(parent, list):
             # We're chaining with a _Stackable object
@@ -524,7 +523,7 @@ class GroupBy(Operation):
 class CoGroup(Operation):
 
     """CoGroup two or more streams on common fields.
-    
+
     This is a PyCascading wrapper around a Cascading CoGroup.
     """
 
@@ -533,7 +532,7 @@ class CoGroup(Operation):
         
         Arguments:
         args[0] -- the fields on which to join
-        
+
         Keyword arguments:
         group_name -- the groupName parameter for Cascading
         group_fields -- the fields on which to group
@@ -642,18 +641,18 @@ def RightOuterJoin(*args, **kwargs):
 
 
 class SubAssembly(Operation):
-    
+
     """Pipe for a Cascading SubAssembly.
-    
+
     We can use it in PyCascading to make use of existing subassemblies,
     such as Unique.
     """
-    
+
     def __init__(self, sub_assembly_class, *args):
         """Create a pipe for a Cascading SubAssembly.
-        
+
         This makes use of a cascading.pipe.SubAssembly class.
-        
+
         Arguments:
         sub_assembly_class -- the Cascading SubAssembly class
         *args -- parameters passed on to the subassembly's constructor when
@@ -661,7 +660,7 @@ class SubAssembly(Operation):
         """
         self.__sub_assembly_class = sub_assembly_class
         self.__args = args
-    
+
     def _create_with_parent(self, parent):
         pipe = self.__sub_assembly_class(parent.get_assembly(), *self.__args)
         tails = pipe.getTails()

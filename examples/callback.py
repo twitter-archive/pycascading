@@ -14,20 +14,22 @@
 #
 
 """
-Contrived Example showing that you can pass functions
-as args to a pycascading.pipe.DecoratedFunction
+Contrived example showing that you can pass functions as args to a UDF.
+Also shows how to use keyword args (just the way it's expected).
 """
 
 from pycascading.helpers import *
 from pycascading.pipe import _wrap_function
 from com.twitter.pycascading import PythonFunctionWrapper
 
+
 def word_count_callback(value):
     return len(value.split())
 
+
 @map(produces=['word_count', 'line'])
-def word_count(tuple, callback=None):
-    return [callback(tuple.get(1)), tuple.get(1)]
+def word_count(tuple, inc, second_inc, callback=None):
+    return [inc + second_inc + callback(tuple.get(1)), tuple.get(1)]
 
 
 def main():
@@ -35,6 +37,8 @@ def main():
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
   
-    p = input | word_count(callback=word_count_callback) | output
+    p = input | \
+    word_count(100, second_inc=200, callback=word_count_callback) | \
+    output
     
     flow.run()
