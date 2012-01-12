@@ -19,7 +19,6 @@ Also shows how to use keyword args (just the way it's expected).
 """
 
 from pycascading.helpers import *
-from pycascading.pipe import _wrap_function
 from com.twitter.pycascading import PythonFunctionWrapper
 
 
