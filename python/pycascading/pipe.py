@@ -34,6 +34,7 @@ __author__ = 'Gabor Szabo'
 
 
 import types
+
 import cascading.pipe
 import cascading.tuple
 import cascading.operation
@@ -52,7 +53,7 @@ def coerce_to_fields(obj):
     Arguments:
     obj -- a cascading.tuple.Fields, an integer, or a string, or a list of
         integers and/or strings identifying fields
-        
+
     Return:
     obj coerced to a cascading.tuple.Fields object
     """
@@ -77,11 +78,27 @@ def random_pipe_name(prefix):
 
     Otherwise Cascading always gets confused.
     """
-    import random
+    import random, re, traceback
+    stack = traceback.extract_stack()
+    stack.reverse()
+    file = None
+    for s in stack:
+        if not re.match(r'.*/pycascading/[^/]+\.py$', s[0]) and \
+        not re.match(r'.*/bootstrap.py$', s[0]):
+            file = s[0]
+            line = s[1]
+            i = file.rfind('/')
+            if i >= 0:
+                file = file[i + 1 :]
+            break
+    name = prefix
+    if file:
+        name = name + '/' + str(line) + ':' + file
+    name += ' '
     id = ''
     for i in xrange(0, 4):
-        id += chr(random.randint(ord('a'), ord('z')))
-    return prefix + ' ' + id
+        name += chr(random.randint(ord('a'), ord('z')))
+    return name
 
 
 def _python_function_to_java(function):
@@ -196,7 +213,7 @@ class Chainable(_Stackable):
 
     def _create_without_parent(self):
         """Called when the Chainable is the first member of a chain.
-        
+
         We want to initialize the chain with this operation as the first
         member.
         """
@@ -204,10 +221,10 @@ class Chainable(_Stackable):
 
     def _create_with_parent(self, parent):
         """Called when the Chainable is NOT the first member of a chain.
-        
+
         Takes a PyCascading Pipe object, or a list thereof, and returns a
         corresponding Cascading Pipe instance.
-        
+
         Arguments:
         parent -- the PyCascading pipe that we need to append this operation to
         """
@@ -217,7 +234,7 @@ class Chainable(_Stackable):
 class Pipe(Chainable):
 
     """The basic PyCascading Pipe object.
-    
+
     This represents an operation on the tuple stream. A Pipe object can has an
     upstream parent (unless it is a source), and a downstream child (unless it
     is a sink).
@@ -248,7 +265,7 @@ class Pipe(Chainable):
 class Operation(Chainable):
 
     """A common base class for all operations (Functions, Filters, etc.).
-    
+
     It doesn't do anything just provides the class.
     """
 
@@ -315,7 +332,7 @@ class DecoratedFunction(Operation):
 class _Each(Operation):
 
     """The equivalent of Each in Cascading.
-    
+
     We need to wrap @maps and @filters with different Java classes, but
     the constructors for Each are built similarly. This class provides this
     functionality.
@@ -323,7 +340,7 @@ class _Each(Operation):
 
     def __init__(self, function_type, *args):
         """Build the Each constructor for the Python function.
-        
+
         Arguments:
         function_type -- CascadingFunctionWrapper or CascadingFilterWrapper,
             whether we are calling Each with a function or filter
@@ -454,16 +471,16 @@ class Every(Operation):
 class GroupBy(Operation):
 
     """GroupBy first merges the given pipes, then groups by the fields given.
-    
+
     This class does the same as the corresponding Cascading GroupBy.
     """
 
     def __init__(self, *args, **kwargs):
         """Create a Cascading Every pipe.
-        
+
         Arguments:
         args[0] -- the fields on which to group
-        
+
         Keyword arguments:
         group_name -- the groupName parameter for Cascading
         group_fields -- the fields on which to group
@@ -529,7 +546,7 @@ class CoGroup(Operation):
 
     def __init__(self, *args, **kwargs):
         """Create a Cascading CoGroup pipe.
-        
+
         Arguments:
         args[0] -- the fields on which to join
 

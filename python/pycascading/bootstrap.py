@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # The first command line parameter must be 'hadoop' or 'local'
     # to indicate the running mode
     running_mode = sys.argv[1]
-    
+
     from com.twitter.pycascading import Util
 
     cascading_jar = Util.getCascadingJar()
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     tmp_dir = Util.getJarFolder()
     sys.path.extend((cascading_jar, '.', tmp_dir, tmp_dir + '/python',
                      tmp_dir + '/python/Lib'))
-    
+
     # Haha... it's necessary to put this here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,
     # but since at that point the sys.path is not set yet to Lib, it will fail?
@@ -53,9 +53,9 @@ if __name__ == "__main__":
     # bootstrap.running_mode from here.
     import pycascading.pipe
     pycascading.pipe.running_mode = running_mode
-    
+
     # Remove the running mode argument so that sys.argv will look like as
     # if it was coming from a simple command line execution
     del sys.argv[0 : 2]
-    
+
     m.main()
