@@ -58,20 +58,20 @@ class Getter():
 
     def __init__(self, object):
         self.object = object
-        
+
     def __getitem__(self, key):
         return self.object.get(key)
-    
+
     def __setitem__(self, key, value):
         return self.object.set(key, value)
 
 
 def time2epoch(t):
     """Converts times in UTC to seconds since the UNIX epoch, 1/1/1970 00:00.
-    
+
     Arguments:
     t -- the time string in 'YYYY-MM-DD hh:mm:ss' format
-    
+
     Exceptions:
     Throws an exception if t is not in the right format.
     """
@@ -81,7 +81,7 @@ def time2epoch(t):
 
 def bigendian2long(b):
     """Converts a series of 4 bytes in big-endian format to a Java Long.
-    
+
     Arguments:
     b -- a string of 4 bytes that represent a word
     """
@@ -90,7 +90,7 @@ def bigendian2long(b):
 
 def bigendian2int(b):
     """Converts a series of 4 bytes in big-endian format to a Python int.
-    
+
     Arguments:
     b -- a string of 4 bytes that represent a word
     """
@@ -99,7 +99,7 @@ def bigendian2int(b):
 
 def SelectFields(fields):
     """Keeps only some fields in the tuple stream.
-    
+
     Arguments:
     fields -- a list of fields to keep, or a Cascading Fields wildcard
     """
@@ -108,10 +108,10 @@ def SelectFields(fields):
 
 def read_hdfs_tsv_file(path):
     """Read a tab-separated HDFS folder and yield the records.
-    
+
     The first line of the file should contain the name of the fields. Each
     record contains columns separated by tabs.
-    
+
     Arguments:
     path -- path to a tab-separated folder containing the data files
     """

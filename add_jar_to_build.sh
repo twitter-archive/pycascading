@@ -17,6 +17,8 @@
 
 #
 # Explodes a jar file and adds its contents to the PyCascading jar build
+# We need to extract the jar contents as it may contain further jars, which
+# would not be picked up if we didn't extract the whole jar
 #
 
 usage()
@@ -33,7 +35,7 @@ The Java classes should be in folders corresponding to their namespaces, as
 usual for jar files. The other Java library jars must be in a \'lib\' folder in
 the jar, and the Python imports must be in a \'python\' folder.
 
-The MANIFEST file, if present, will be disregarded.
+The MANIFEST file, if present, will be discarded.
 
 Obviously, this script must be run after every new build of PyCascading for all
 the jars that should be added to the PyCascading build.
