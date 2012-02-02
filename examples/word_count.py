@@ -27,12 +27,12 @@ def split_words(tuple):
     for word in tuple.get(1).split():
         yield [word]
 
-        
+
 def main():
     flow = Flow()
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
-    
+
     input | split_words | GroupBy('word') | Count() | output
-    
+
     flow.run()

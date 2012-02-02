@@ -19,7 +19,7 @@
 # This script is used to deploy a PyCascading job remotely to a server
 #
 
-# This is the server where the script has to be submitted
+# This is the server default where the script has to be submitted
 # SSH access has to be present
 server=localhost
 # This is the folder where a temporary directory is created for the submission
@@ -27,6 +27,8 @@ server=localhost
 server_deploys_dir='$HOME/pycascading/deploys'
 # The folder on the remote server where the master jar will be placed
 server_build_dir='$HOME/pycascading'
+# Additional
+ssh_options=""
 
 usage()
 {
@@ -37,14 +39,16 @@ The main_script gets executed by PyCascading. All additional_files are also
 copied to the remote server and submitted together with the job to Hadoop. 
 
 Options:
-   -h           Show this message
-   -m           Also deploy the PyCascading master jar before submitting job
-   -f <file>    Copy file to the server together with main_script, but do not
-   				bundle it into the Hadoop jar for submission. This option may
-   				be repeated several times for multiple files. File names cannot
-   				start with a dot.
-   -s <server>  The name of the remote server where Hadoop is installed and the
-                PyCascading jar should be deployed to
+   -h                Show this message
+   -m                Also deploy the PyCascading master jar before submitting
+                     the job job
+   -f <file>         Copy file to the server together with main_script, but
+                     do not bundle it into the Hadoop jar for submission. This
+                     option may be repeated several times for multiple files.
+                     File names cannot start with a dot.
+   -s <server>       The name of the remote server where Hadoop is installed
+                     and the PyCascading jar should be deployed to
+   -o <ssh_options>  Additional options for SSH (such as private key, etc.) 
 
 EOF
 }
@@ -52,7 +56,7 @@ EOF
 master_first=no
 declare -a files_to_copy
 
-while getopts ":hmf:s:" OPTION; do
+while getopts ":hmf:s:o:" OPTION; do
 	case $OPTION in
 		h)	usage
          	exit 1
@@ -63,6 +67,8 @@ while getopts ":hmf:s:" OPTION; do
         	;;
         s)	server="$OPTARG"
         	;;
+        o)  ssh_options="$OPTARG"
+            ;;
 	esac
 done
 shift $((OPTIND-1))
@@ -134,5 +140,6 @@ chmod +x $tmp_dir/run.sh
 
 # Upload the package to the server and run the setup script
 cd $tmp_dir
-tar czhf - . | ssh $server "dir=\`mktemp -d\`; cd \$dir; tar xfz -; ./setup.sh; rm -r \$dir"
+tar czhf - . | ssh $server $ssh_options \
+"dir=\`mktemp -d\`; cd \$dir; tar xfz -; ./setup.sh; rm -r \$dir"
 rm -r $tmp_dir
