@@ -13,14 +13,14 @@
 # limitations under the License.
 #
 
-"""Example showing the usage of caches.
+"""Example showing how to use caches.
 
 A cache saves the result of an operation to a temporary folder, and running
 the same script again will take the data from the cached files, instead of
-executing the generating pipe again.
+executing the original pipe again.
 
-This is useful if we want to repeatedly run the script with slightly different
-modifications that do not impact the cached results. 
+This is useful if we want to repeatedly run the script with modifications
+to parts that do not change the cached results. 
 
 The data is expected in the pycascading_data/ folder if run in local mode,
 and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop. 
@@ -54,15 +54,15 @@ def main():
     if len(sys.argv) < 2:
         print 'A character must be given as a separator character.'
         return
-    
+
     flow = Flow()
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
-    
+
     # Select the lines beginning with 'A', and save this intermediate result
     # in the cache so that we can call the script several times with
     # different separator characters
     p = flow.cache('line_begins') | (input | find_lines_with_beginning('A'))
     p | GroupBy(Fields.VALUES) | concat_all(sys.argv[1]) | output
-    
+
     flow.run()

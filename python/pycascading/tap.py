@@ -5,7 +5,7 @@
 # You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -62,7 +62,7 @@ def expand_path_with_home(output_folder):
 class Flow(object):
 
     """Define sources and sinks for the flow.
-    
+
     This associates all sources and sinks with their head pipe mappings.
     The default number of reducers is 100. Set this in the num_reducers
     parameter when starting the flow with run().
@@ -75,7 +75,7 @@ class Flow(object):
 
     def _connect_source(self, pipe_name, cascading_tap):
         """Add a source to the flow.
-        
+
         Cascading needs to map taps to a pipeline with string names. This is
         inconvenient, but we need to keep track of these strings. We also need
         to count references to taps, as sometimes we need to remove pipelines
@@ -115,7 +115,7 @@ class Flow(object):
 
     def sink(self, cascading_scheme):
         """A Cascading sink using a Cascading Scheme.
-        
+
         Arguments:
         cascading_scheme -- the Cascading Scheme used to store the data
         """
@@ -123,12 +123,12 @@ class Flow(object):
 
     def meta_sink(self, cascading_scheme, output_path):
         """Store data together with meta information about the scheme used.
-        
+
         A sink that also stores in a file information about the scheme used to
         store data, and human-readable descriptions in the .pycascading_header
         and .pycascading_types files with the field names and their types,
         respectively.
-        
+
         Arguments:
         cascading_scheme -- the Cascading Scheme used to store data
         output_path -- the folder where the output tuples should be stored.
@@ -201,22 +201,6 @@ class Flow(object):
                 source_map[source] = self.source_map[source]
         tails = [t.get_assembly() for t in self.tails]
         Util.run(num_reducers, config, source_map, self.sink_map, tails)
-
-
-class Source(Chainable):
-
-    """A PyCascading source that can be used as the head of a pipeline.
-
-    Used internally.
-    """
-
-    def __init__(self, taps, cascading_tap):
-        Chainable.__init__(self)
-        self.__cascading_tap = cascading_tap
-        self.__taps = taps
-
-    def _apply(self, parent):
-        raise Exception('A source cannot be chained into')
 
 
 class _Sink(Chainable):
