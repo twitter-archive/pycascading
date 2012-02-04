@@ -49,7 +49,7 @@ import java.lang.Integer
 def coerce_to_fields(obj):
     """
     Utility function to convert a list or field name to cascading.tuple.Fields.
-    
+
     Arguments:
     obj -- a cascading.tuple.Fields, an integer, or a string, or a list of
         integers and/or strings identifying fields

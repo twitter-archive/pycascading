@@ -17,17 +17,23 @@
 
 #
 # This script is used to deploy a PyCascading job remotely to a server
+# where Hadoop is installed. The variables below are the defaults.
 #
 
-# This is the server default where the script has to be submitted
-# SSH access has to be present
+# This is the default server where the PyCascading script will be submitted
+# to Hadoop. We assume we have SSH access to this server.
 server=localhost
-# This is the folder where a temporary directory is created for the submission
-# $HOME is only expanded on the remote server
+
+# This is the folder on the remote server where a temporary directory is
+# going to be created for the submission. $HOME is only expanded on the
+# remote server.
 server_deploys_dir='$HOME/pycascading/deploys'
-# The folder on the remote server where the master jar will be placed
+
+# The folder on the remote server where the PyCascading master jar will be
+# placed
 server_build_dir='$HOME/pycascading'
-# Additional
+
+# Additional SSH options (see "man ssh"; private key, etc.)
 ssh_options=""
 
 usage()
@@ -53,7 +59,9 @@ Options:
 EOF
 }
 
+# Copy the master jar over first? The -m option.
 master_first=no
+
 declare -a files_to_copy
 
 while getopts ":hmf:s:o:" OPTION; do

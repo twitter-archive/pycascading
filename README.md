@@ -82,11 +82,20 @@ Hadoop server.
 Building
 --------
 
-Requirements:
+Requirements for building:
 
 * Cascading 1.2.* or 2.0.0 (http://www.concurrentinc.com/downloads/)
 * Jython 2.5.2+ (http://www.jython.org/downloads.html)
-* Hadoop 0.20.2+ (http://www.apache.org/dyn/closer.cgi/hadoop/common/)
+* Hadoop 0.20.2+, the version preferably matching the Hadoop runtime
+(http://www.apache.org/dyn/closer.cgi/hadoop/common/)
+* A Java compiler
+* Ant (http://ant.apache.org/)
+
+Requirements for running:
+
+* Hadoop installed and set up on the target server (http://hadoop.apache.org/)
+* SSH access to the remote server
+* If testing scripts locally, a reasonable JVM callable by "java"
 
 PyCascading consists of Java and Python sources. Python sources need no
 compiling, but the Java part needs to be built with Ant. For this, change to
@@ -101,25 +110,6 @@ Also, check the remote_deploy.sh script and the locations defined in the
 beginning of that file on where to put the jar files on the Hadoop server.
 
 
-Versioning
-----------
-
-For transparency and insight into our release cycle, and for striving to
-maintain backwards compatibility, PyCascading will be maintained under the
-semantic versioning guidelines as much as possible. Releases will be numbered
-with the follow format:
-
-`<major>.<minor>.<patch>`
-
-And constructed with the following guidelines:
-
-* Breaking backwards compatibility bumps the major
-* New additions without breaking backwards compatibility bumps the minor
-* Bug fixes and misc changes bump the patch
-
-For more information on semantic versioning, please visit http://semver.org/.
-
-
 Bugs
 ----
 
@@ -131,7 +121,8 @@ https://github.com/twitter/pycascading/issues
 Mailing list
 ------------
 
-Currently we are using the cascading-user mailing list for discussions.
+Currently we are using the cascading-user mailing list for discussions. Any
+questions, please ask there.
 
 http://groups.google.com/group/cascading-user
 
