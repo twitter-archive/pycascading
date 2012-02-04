@@ -349,7 +349,11 @@ class _Each(Operation):
         Operation.__init__(self)
 
         self.__function = None
+        # The default argument selector is Fields.ALL (per Cascading sources
+        # for Operator.java)
         self.__argument_selector = None
+        # The default output selector is Fields.RESULTS (per Cascading sources
+        # for Operator.java)
         self.__output_selector = None
 
         if len(args) == 1:
@@ -501,7 +505,7 @@ class GroupBy(Operation):
                       lhs_pipe=None, rhs_pipe=None):
         # We can use an unnamed parameter only for group_fields
         if self.__args:
-            group_fields = self.__args[0]
+            group_fields = coerce_to_fields(self.__args[0])
         args = []
         if group_name:
             args.append(group_name)
@@ -575,7 +579,7 @@ class CoGroup(Operation):
                       rhs=None, rhs_group_fields=None):
         # We can use an unnamed parameter only for group_fields
         if self.__args:
-            group_fields = self.__args[0]
+            group_fields = coerce_to_fields(self.__args[0])
         args = []
         if group_name:
             args.append(str(group_name))
