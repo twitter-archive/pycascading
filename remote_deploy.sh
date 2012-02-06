@@ -31,10 +31,13 @@ server_deploys_dir='$HOME/pycascading/deploys'
 
 # The folder on the remote server where the PyCascading master jar will be
 # placed
-server_build_dir='$HOME/pycascading'
+server_build_dir='$HOME/pycascading/master'
 
 # Additional SSH options (see "man ssh"; private key, etc.)
 ssh_options=""
+
+
+# Options over, the script begins here
 
 usage()
 {
@@ -42,7 +45,7 @@ usage()
 Usage: $0 [options] <main_script> [additional_files]
 
 The main_script gets executed by PyCascading. All additional_files are also
-copied to the remote server and submitted together with the job to Hadoop. 
+copied to the remote server and submitted together with the job to Hadoop.
 
 Options:
    -h                Show this message
@@ -54,10 +57,23 @@ Options:
                      File names cannot start with a dot.
    -s <server>       The name of the remote server where Hadoop is installed
                      and the PyCascading jar should be deployed to
-   -o <ssh_options>  Additional options for SSH (such as private key, etc.) 
+   -o <ssh_options>  Additional options for SSH (such as private key, etc.)
 
 EOF
 }
+
+
+realpath()
+{
+    if echo "$1" | grep '^/' >/dev/null; then
+        # Path is absolute
+        echo "$1"
+    else
+        # Path is relative to the working directory
+        echo "$(pwd)/$1"
+    fi
+}
+
 
 # Copy the master jar over first? The -m option.
 master_first=no
@@ -87,8 +103,9 @@ if [ "$main_file" == "" -a $master_first == no ]; then
 	exit 3
 fi
 
-home_dir=$(readlink -f "`dirname \"$0\"`")
-tmp_dir="`mktemp -d`"
+home_dir=$(realpath $(dirname "$0"))
+# This is the version that works both on Linux and Mac OS X
+tmp_dir=$(mktemp -d /tmp/PyCascading-tmp-XXXXXX)
 
 if [ $master_first == yes ]; then
     master="$home_dir/build/pycascading.jar"
@@ -104,50 +121,57 @@ if [ "$main_file" != "" ]; then
 	mkdir $tmp_dir/sources
 	mkdir $tmp_dir/other
 	for i in "$@"; do
-		ln -s "`readlink -f \"$i\"`" $tmp_dir/sources
+		ln -s $(realpath "$i") "$tmp_dir/sources"
 	done
 
 	for i in "${files_to_copy[@]}"; do
-		ln -s "`readlink -f \"$i\"`" $tmp_dir/other
+		ln -s $(realpath "$i") "$tmp_dir/other"
 	done
 fi
 
-# Create a setup file that will be run on the remote server
-cat >$tmp_dir/setup.sh <<EOF
+# Create a setup file that will be run on the deploy server
+cat >"$tmp_dir/setup.sh" <<EOF
+#!/usr/bin/env bash
+#
+# This script is run on the deploy server to set up the PyCascading job folder
+#
 if [ -e pycascading.jar ]; then
-	mkdir -p "$server_build_dir"
-	mv pycascading.jar bootstrap.py "$server_build_dir"
+    # If we packaged the master jar, update it
+    mkdir -p "$server_build_dir"
+    mv pycascading.jar bootstrap.py "$server_build_dir"
 fi
 if [ -e sources ]; then
-	mkdir -p "$server_deploys_dir"
-	deploy_dir="\`mktemp -d -p \"$server_deploys_dir\"\`"
-	mv run.sh sources other "\$deploy_dir"
-	cd "\$deploy_dir"
-	if [ -e "$server_build_dir"/pycascading.jar ]; then
-		cp "$server_build_dir"/pycascading.jar deploy.jar
-		cp "$server_build_dir"/bootstrap.py .
-		jar uf deploy.jar -C sources .
-		mv other/* sources 2>/dev/null
-		rm -r other
-		echo On $server run with:
-		echo "   \$deploy_dir/run.sh [parameters]"
-	else
-		echo The PyCascading master jar has not yet been deployed, do a \"remote_deploy.sh -m\" first.
-	fi
+    mkdir -p "$server_deploys_dir"
+    deploy_dir=\$(mktemp -d "$server_deploys_dir/XXXXXX")
+    mv run.sh sources other "\$deploy_dir"
+    cd "\$deploy_dir"
+    if [ -e "$server_build_dir/pycascading.jar" ]; then
+        cp "$server_build_dir/pycascading.jar" deploy.jar
+        cp "$server_build_dir/bootstrap.py" .
+        jar uf deploy.jar -C sources .
+        mv other/* sources 2>/dev/null
+        rm -r other
+        echo "Run the job on $server with:"
+        echo "   \$deploy_dir/run.sh [parameters]"
+    else
+        echo 'The PyCascading master jar has not yet been deployed, do a "remote_deploy.sh -m" first.'
+    fi
 fi
 EOF
-chmod +x $tmp_dir/setup.sh
+chmod +x "$tmp_dir/setup.sh"
 
 # Create a small script on the remote server that runs the job
 cat >$tmp_dir/run.sh <<EOF
-home_dir=\$(readlink -f "\`dirname \"\$0\"\`")
-cd "\$home_dir/sources"
-hadoop jar ../deploy.jar ../bootstrap.py hadoop "$main_file" "\$@"
+#!/usr/bin/env bash
+# Run the PyCascading job
+cd \$(dirname "\$0")/sources
+hadoop jar ../deploy.jar ../bootstrap.py hadoop "$(basename "$main_file")" "\$@"
 EOF
-chmod +x $tmp_dir/run.sh
+chmod +x "$tmp_dir/run.sh"
 
 # Upload the package to the server and run the setup script
-cd $tmp_dir
+cd "$tmp_dir"
 tar czhf - . | ssh $server $ssh_options \
-"dir=\`mktemp -d\`; cd \$dir; tar xfz -; ./setup.sh; rm -r \$dir"
-rm -r $tmp_dir
+"dir=\$(mktemp -d /tmp/PyCascading-tmp-XXXXXX); cd \"\$dir\"; tar xfz -; " \
+"./setup.sh; rm -r \"\$dir\""
+rm -r "$tmp_dir"

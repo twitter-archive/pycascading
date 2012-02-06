@@ -16,9 +16,11 @@
 #
 
 #
-# Explodes a jar file and adds its contents to the PyCascading jar build
-# We need to extract the jar contents as it may contain further jars, which
-# would not be picked up if we didn't extract the whole jar
+# Extracts a jar file and adds its contents to the PyCascading jar build.
+#
+# We need to extract the jar's contents as we expect that it may contain
+# further jars, which would not be picked up if we didn't extract the
+# whole jar.
 #
 
 usage()
@@ -49,17 +51,12 @@ if [ $# -eq 0 ]; then
 fi
 
 home_dir=$(pwd)
-pycascading_dir=$(readlink -f "`dirname \"$0\"`")
+pycascading_dir=$(dirname "$0")
 
-temp=$(mktemp -d)
 for j in "$@"; do
-    echo -n "Adding $j..."
-    jar=$(readlink -f "$j")
-    cd "$temp"
-    jar xf "$jar"
-    rm -rf META-INF/MANIFEST.MF 2>/dev/null
-    jar uf "$pycascading_dir/build/pycascading.jar" .
-    cd "$home_dir"
-    echo " done."
+    temp=$(mktemp -d /tmp/PyCascading-tmp-XXXXXX)
+    cat "$j" | (cd "$temp"; jar x)
+    rm -rf "$temp/META-INF/MANIFEST.MF" 2>/dev/null
+    jar -uf "$pycascading_dir/build/pycascading.jar" -C "$temp" .
+    rm -rf "$temp"
 done
-rm -rf "$temp"
