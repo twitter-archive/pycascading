@@ -105,7 +105,7 @@ fi
 
 home_dir=$(realpath $(dirname "$0"))
 # This is the version that works both on Linux and Mac OS X
-tmp_dir=$(mktemp -d /tmp/PyCascading-tmp-XXXXXX)
+tmp_dir=$(mktemp -d -t PyCascading-tmp-XXXXXX)
 
 if [ $master_first == yes ]; then
     master="$home_dir/build/pycascading.jar"
@@ -172,6 +172,6 @@ chmod +x "$tmp_dir/run.sh"
 # Upload the package to the server and run the setup script
 cd "$tmp_dir"
 tar czhf - . | ssh $server $ssh_options \
-"dir=\$(mktemp -d /tmp/PyCascading-tmp-XXXXXX); cd \"\$dir\"; tar xfz -; " \
+"dir=\$(mktemp -d -t PyCascading-tmp-XXXXXX); cd \"\$dir\"; tar xfz -; " \
 "./setup.sh; rm -r \"\$dir\""
 rm -r "$tmp_dir"

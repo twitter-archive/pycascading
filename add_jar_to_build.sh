@@ -54,7 +54,7 @@ home_dir=$(pwd)
 pycascading_dir=$(dirname "$0")
 
 for j in "$@"; do
-    temp=$(mktemp -d /tmp/PyCascading-tmp-XXXXXX)
+    temp=$(mktemp -d -t PyCascading-tmp-XXXXXX)
     cat "$j" | (cd "$temp"; jar x)
     rm -rf "$temp/META-INF/MANIFEST.MF" 2>/dev/null
     jar -uf "$pycascading_dir/build/pycascading.jar" -C "$temp" .
