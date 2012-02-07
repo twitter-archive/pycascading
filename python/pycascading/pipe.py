@@ -579,7 +579,7 @@ class CoGroup(Operation):
                       rhs=None, rhs_group_fields=None):
         # We can use an unnamed parameter only for group_fields
         if self.__args:
-            group_fields = coerce_to_fields(self.__args[0])
+            group_fields = [coerce_to_fields(f) for f in self.__args[0]]
         args = []
         if group_name:
             args.append(str(group_name))
