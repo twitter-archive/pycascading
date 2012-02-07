@@ -26,7 +26,8 @@ assemblies, and schemes.
 __author__ = 'Gabor Szabo'
 
 
-import time, struct
+import time, struct, subprocess
+
 
 # Import all important PyCascading modules so we don't have to in the scripts
 from pycascading.decorators import *
@@ -49,7 +50,7 @@ from pycascading.pipe import coerce_to_fields
 
 
 class Getter():
-    
+
     """A wrapper for an object with 'get' and 'set' methods.
 
     If the object has a .get(key) method and a .set(key, value) method,

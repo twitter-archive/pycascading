@@ -26,8 +26,6 @@ read_hdfs_tsv_file
 __author__ = 'Gabor Szabo'
 
 
-import subprocess
-
 from pycascading.pipe import random_pipe_name, Chainable, Pipe
 from com.twitter.pycascading import Util, MetaScheme
 
@@ -42,17 +40,17 @@ from org.apache.hadoop.conf import Configuration
 def expand_path_with_home(output_folder):
     """Prepend the home folder to a relative location on HDFS if necessary.
 
-    If we specified a relative path, prepend it with the home folder
-    of the user on HDFS. If we are running in local mode, don't do anything.
+    Only if we specified a relative path and no scheme, prepend it with the
+    home folder of the user on HDFS. This behavior is similar to how
+    "hadoop fs" works. If we are running in local mode, don't do anything.
 
     Arguments:
     output_folder -- the absolute or relative path of the output HDFS folder
     """
     import pycascading.pipe
     if pycascading.pipe.running_mode == 'hadoop':
-        if output_folder == '' or \
-        (output_folder[0 : 5] not in set(['hdfs:', 'file:']) and \
-         output_folder[0] != '/'):
+        if not any(map(lambda scheme: output_folder.startswith(scheme), \
+                       ['hdfs:', 'file:', 's3:', 's3n:', '/'])):
             fs = Path('/').getFileSystem(Configuration())
             home_folder = fs.getHomeDirectory().toString()
             return home_folder + '/' + output_folder
