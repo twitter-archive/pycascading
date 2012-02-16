@@ -19,14 +19,41 @@
 # Runs the PyCascading locally without Hadoop
 #
 
-if [ $# -lt 1 ]; then
-	cat <<EOF
-Usage: $0 <main_script.py> [parameters]
 
-Runs the PyCascading script locally, without Hadoop.
+usage()
+{
+    cat <<EOF
+Usage:
+
+$(basename "$0") <main_script.py> [parameters]
+
+Runs the PyCascading script locally, without a Hadoop cluster.
+
+Options:
+   -h                Show this message
+   -j <cp>           Additional jar files and Python import folders to be added
+                     to the classpath. cp is a list of file and folder locations
+                     separated by ":"s
 
 EOF
-	exit
+}
+
+
+while getopts ":hj:" OPTION; do
+    case $OPTION in
+        h)  usage
+            exit 1
+            ;;
+        j)  additional_jars="$OPTARG"
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+main_file="$1"
+if [ "$main_file" == "" ]; then
+    usage
+    exit 1
 fi
 
 home_dir=$(dirname "$0")
@@ -34,7 +61,8 @@ source "$home_dir/java/dependencies.properties"
 
 classpath="$home_dir/build/classes"
 
-function add2classpath {
+function add2classpath
+{
 	for lib in $1; do
 		for file in $(ls $2/$lib); do
 			classpath="$classpath:$file"
@@ -54,5 +82,10 @@ add2classpath "$cascading_libs" "$cascading"
 hadoop_libs='hadoop-*core*.jar lib/*.jar'
 add2classpath "$hadoop_libs" "$hadoop"
 
+if [ "$additional_jars" != "" ]; then
+    classpath="$classpath:$additional_jars"
+fi
+
+# sys.path will be initialized from JYTHONPATH
 JYTHONPATH="$home_dir/python" java -classpath "$classpath" \
 org.python.util.jython "$home_dir/python/pycascading/bootstrap.py" local "$@"

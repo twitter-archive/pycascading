@@ -38,8 +38,11 @@ if __name__ == "__main__":
     cascading_jar = Util.getCascadingJar()
     # This is the folder where Hadoop extracted the jar file for execution
     tmp_dir = Util.getJarFolder()
-    sys.path.extend((cascading_jar, '.', tmp_dir, tmp_dir + '/python',
-                     tmp_dir + '/python/Lib'))
+
+    # The initial value of sys.path is JYTHONPATH plus whatever Jython appends
+    # to it (normally the Python standard libraries the come with Jython)
+    sys.path.extend((cascading_jar, '.', tmp_dir, tmp_dir + 'python',
+                     tmp_dir + 'python/Lib'))
 
     # Haha... it's necessary to put this here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,

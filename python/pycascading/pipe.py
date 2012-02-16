@@ -456,7 +456,7 @@ class Every(Operation):
 
     def _create_with_parent(self, parent):
         # TODO: make output_selector=Fields.RESULTS default so that with a
-        # bufferdon't have to define an Every every time if we want to do that
+        # reduce we don't have to define an Every every time if we want to do that
         if 'argument_selector' not in self.__kwargs:
             self.__kwargs['argument_selector'] = cascading.tuple.Fields.ALL
         if 'output_selector' not in self.__kwargs:
