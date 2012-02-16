@@ -27,17 +27,16 @@ import cascading.tuple.TupleEntry;
 import cascading.tuple.TupleEntryCollector;
 
 /**
- * Simple Cascading function that keeps the specified fields only
- * in the tuple stream.
+ * Simple Cascading function that keeps the specified fields only in the tuple
+ * stream.
  * 
  * @author Gabor Szabo
  */
-public class SelectFields extends BaseOperation implements Function,
-        Serializable {
+public class SelectFields extends BaseOperation implements Function, Serializable {
   private static final long serialVersionUID = -6859909716154224842L;
 
   private Fields filteredFileds;
-  
+
   public SelectFields(Fields filteredFileds) {
     super(filteredFileds);
     this.filteredFileds = filteredFileds;
@@ -54,9 +53,12 @@ public class SelectFields extends BaseOperation implements Function,
     TupleEntry inputTuple = functionCall.getArguments();
     TupleEntryCollector outputCollector = functionCall.getOutputCollector();
     Tuple outputTuple = new Tuple();
-    
+
     for (Comparable field : filteredFileds) {
-      outputTuple.add(inputTuple.get(field));
+      // We cannot use inputTuple.get(...) here, as that tries to convert
+      // the field value to a Comparable. In case we have a complex Python
+      // type as a field, that won't work.
+      outputTuple.add(inputTuple.getObject(field));
     }
     outputCollector.add(outputTuple);
   }

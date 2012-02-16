@@ -27,17 +27,18 @@ import org.python.core.PyObject;
  * @author Gabor Szabo
  */
 public class PythonDeserializer implements Deserializer<PyObject> {
-  private ObjectInputStream in;
+  private InputStream inStream;
 
   public PythonDeserializer(Class<PyObject> c) {
   }
 
   public void open(InputStream inStream) throws IOException {
-    in = new ObjectInputStream(inStream);
+    this.inStream = inStream;
   }
 
   public PyObject deserialize(PyObject i) throws IOException {
     try {
+      ObjectInputStream in = new ObjectInputStream(inStream);
       return (PyObject) in.readObject();
     } catch (ClassNotFoundException e) {
       throw new IOException("Jython class not found");
@@ -45,8 +46,8 @@ public class PythonDeserializer implements Deserializer<PyObject> {
   }
 
   public void close() throws IOException {
-    if (in != null) {
-      in.close();
+    if (inStream != null) {
+      inStream.close();
     }
   }
 }

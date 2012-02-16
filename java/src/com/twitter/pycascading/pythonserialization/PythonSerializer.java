@@ -27,19 +27,26 @@ import org.python.core.PyObject;
  * @author Gabor Szabo
  */
 public class PythonSerializer implements Serializer<PyObject> {
-  private ObjectOutputStream out;
+  private OutputStream outStream;
 
   public void open(OutputStream outStream) throws IOException {
-    out = new ObjectOutputStream(outStream);
+    this.outStream = outStream;
   }
 
   public void serialize(PyObject i) throws IOException {
+    // We have to create an ObjectOutputStream here. If we do it in open(...),
+    // the following exception will be thrown on the reducers from
+    // PythonDeserializer with large jobs:
+    // java.io.StreamCorruptedException: invalid stream header: 7371007E
+    // TODO: check if a flush wouldn't be enough
+    ObjectOutputStream out = new ObjectOutputStream(outStream);
     out.writeObject(i);
+    out.close();
   }
 
   public void close() throws IOException {
-    if (out != null) {
-      out.close();
+    if (outStream != null) {
+      outStream.close();
     }
   }
 }
