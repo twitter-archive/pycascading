@@ -14,6 +14,7 @@
  */
 package com.twitter.pycascading.pythonserialization;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -22,24 +23,29 @@ import org.apache.hadoop.io.serializer.Deserializer;
 import org.python.core.PyObject;
 
 /**
- * Hadoop Deserializer for Python objects.
+ * Hadoop Deserializer for Python objects. It works, but it's slow so do not use
+ * in serious production.
  * 
  * @author Gabor Szabo
  */
 public class PythonDeserializer implements Deserializer<PyObject> {
-  private InputStream inStream;
+  private DataInputStream inStream;
 
   public PythonDeserializer(Class<PyObject> c) {
   }
 
   public void open(InputStream inStream) throws IOException {
-    this.inStream = inStream;
+    if (inStream instanceof DataInputStream)
+      this.inStream = (DataInputStream) inStream;
+    else
+      this.inStream = new DataInputStream(inStream);
   }
 
   public PyObject deserialize(PyObject i) throws IOException {
     try {
       ObjectInputStream in = new ObjectInputStream(inStream);
-      return (PyObject) in.readObject();
+      PyObject ret = (PyObject) in.readObject();
+      return ret;
     } catch (ClassNotFoundException e) {
       throw new IOException("Jython class not found");
     }
@@ -48,6 +54,7 @@ public class PythonDeserializer implements Deserializer<PyObject> {
   public void close() throws IOException {
     if (inStream != null) {
       inStream.close();
+      inStream = null;
     }
   }
 }

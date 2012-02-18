@@ -14,9 +14,6 @@
  */
 package com.twitter.pycascading.pythonserialization;
 
-import cascading.tuple.Comparison;
-
-import java.util.Comparator;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.Serialization;
 import org.apache.hadoop.io.serializer.Serializer;
@@ -27,7 +24,7 @@ import org.python.core.PyObject;
  * 
  * @author Gabor Szabo
  */
-public class PythonSerialization implements Serialization<PyObject>, Comparison<PyObject> {
+public class PythonSerialization implements Serialization<PyObject> {
 
   public boolean accept(Class<?> c) {
     boolean ret = PyObject.class.isAssignableFrom(c);
@@ -42,7 +39,4 @@ public class PythonSerialization implements Serialization<PyObject>, Comparison<
     return new PythonSerializer();
   }
 
-  public Comparator<PyObject> getComparator(Class<PyObject> type) {
-    return new PythonComparator(type);
-  }
 }

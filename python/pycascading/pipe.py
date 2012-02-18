@@ -409,7 +409,7 @@ class Every(Operation):
     CoGroup. It runs a Cascading Aggregator or Buffer on every grouping.
     Native Java aggregators or buffers may be used, and also PyCascading
     @reduces.
-    
+
     By default the tuples contain only the values in a group, but not the
     grouping field. This can be had from the group first parameter.
     """

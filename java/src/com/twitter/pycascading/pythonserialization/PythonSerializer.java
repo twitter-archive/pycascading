@@ -14,6 +14,7 @@
  */
 package com.twitter.pycascading.pythonserialization;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
@@ -24,13 +25,20 @@ import org.python.core.PyObject;
 /**
  * Hadoop Serializer for Python objects.
  * 
+ * This is suboptimal, slow, and produces bloated streams, and should not be
+ * used in production. In other words it just demonstrates the use of serialized
+ * Python objects.
+ * 
  * @author Gabor Szabo
  */
 public class PythonSerializer implements Serializer<PyObject> {
-  private OutputStream outStream;
+  private DataOutputStream outStream;
 
   public void open(OutputStream outStream) throws IOException {
-    this.outStream = outStream;
+    if (outStream instanceof DataOutputStream)
+      this.outStream = (DataOutputStream) outStream;
+    else
+      this.outStream = new DataOutputStream(outStream);
   }
 
   public void serialize(PyObject i) throws IOException {
@@ -41,12 +49,18 @@ public class PythonSerializer implements Serializer<PyObject> {
     // TODO: check if a flush wouldn't be enough
     ObjectOutputStream out = new ObjectOutputStream(outStream);
     out.writeObject(i);
-    out.close();
+    // We need to flush the stream, otherwise we get corrupted object stream
+    // header exceptions as above.
+    // Also do not use close(), as that would close result in
+    // java.io.IOException: write beyond end of stream exceptions on spilled
+    // cogroups.
+    out.flush();
   }
 
   public void close() throws IOException {
     if (outStream != null) {
       outStream.close();
+      outStream = null;
     }
   }
 }
