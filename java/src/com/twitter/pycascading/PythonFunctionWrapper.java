@@ -49,6 +49,10 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.JobConf;
 import org.python.core.PyDictionary;
 import org.python.core.PyFunction;
 import org.python.core.PyObject;
@@ -94,18 +98,41 @@ public class PythonFunctionWrapper implements Serializable {
     stream.writeObject(runningMode);
   }
 
-  private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException,
-          URISyntaxException {
+  private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
     funcName = (PyString) stream.readObject();
     sourceFile = (PyString) stream.readObject();
     runningMode = (RunningMode) stream.readObject();
+  }
 
+  public void prepare(JobConf conf) {
+    String pycascadingDir = null;
+    String sourceDir = null;
+    String[] modulePaths = null;
+    if (runningMode == RunningMode.HADOOP) {
+      try {
+        Path[] archives = DistributedCache.getLocalCacheArchives(conf);
+        pycascadingDir = archives[0].toString() + "/";
+        sourceDir = archives[1].toString() + "/";
+        modulePaths = new String[archives.length];
+        int i = 0;
+        for (Path archive : archives) {
+          modulePaths[i++] = archive.toString();
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    } else {
+      pycascadingDir = System.getProperty("pycascading.root") + "/";
+      sourceDir = "";
+      modulePaths = new String[] { pycascadingDir, sourceDir };
+    }
     getPythonInterpreter();
-    String jarDir = Util.getJarFolder();
-    interpreter.execfile(jarDir + "python/pycascading/init_module.py");
+    interpreter.execfile(pycascadingDir + "python/pycascading/init_module.py");
     interpreter.set("module_name", "m");
-    interpreter.set("file_name", (runningMode == RunningMode.LOCAL ? "" : jarDir) + sourceFile);
-    PyObject module = (PyObject) interpreter.eval("load_source(module_name, file_name)");
+    interpreter.set("file_name", sourceDir + sourceFile);
+    interpreter.set("module_paths", modulePaths);
+    PyObject module = (PyObject) interpreter
+            .eval("load_source(module_name, file_name, module_paths)");
     pythonFunction = module.__getattr__(funcName);
     if (!PyFunction.class.isInstance(pythonFunction)) {
       // function is assumed to be decorated, resulting in a DecoratedFunction.

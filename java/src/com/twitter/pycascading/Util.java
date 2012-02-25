@@ -14,11 +14,12 @@
  */
 package com.twitter.pycascading;
 
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Properties;
 
-import org.python.util.PythonInterpreter;
+import org.apache.hadoop.conf.Configuration;
 
 import cascading.flow.Flow;
 import cascading.flow.FlowConnector;
@@ -63,8 +64,22 @@ public class Util {
     }
   }
 
-  public static void run(int numReducers, Map<String, Object> config, Map<String, Tap> sources,
-          Map<String, Tap> sinks, Pipe... tails) {
+  /**
+   * We use the "pycascading.root" Java system property to store the location of
+   * the Python sources for PyCascading. This is only used in local mode. This
+   * is needed so that we know where to set the import path when we spin up the
+   * mappers and reducers.
+   * 
+   * @param root
+   *          the location of the PyCascading sources on the local file system
+   */
+  public static void setPycascadingRoot(String root) {
+    System.setProperty("pycascading.root", root);
+  }
+
+  public static void run(String runningMode, int numReducers, Map<String, Object> config,
+          Map<String, Tap> sources, Map<String, Tap> sinks, Pipe... tails) throws IOException,
+          URISyntaxException {
     // String strClassPath = System.getProperty("java.class.path");
     // System.out.println("Classpath is " + strClassPath);
 
@@ -86,25 +101,42 @@ public class Util {
                     + "com.twitter.pycascading.pythonserialization.PythonSerialization");
     properties.put("mapred.jobtracker.completeuserjobs.maximum", 50000);
     properties.put("mapred.input.dir.recursive", "true");
-    FlowConnector.setApplicationJarClass(properties, Util.class);
 
-    FlowConnector flowConnector = new FlowConnector(properties);
-    try {
-      Flow flow = flowConnector.connect(sources, sinks, tails);
-      // execute the flow, block until complete
-      flow.complete();
-    } catch (Exception e) {
-      e.printStackTrace();
+    Configuration conf = new Configuration();
+    TemporaryHdfs tempDir = new TemporaryHdfs();
+    if ("hadoop".equals(runningMode)) {
+      tempDir = new TemporaryHdfs();
+      tempDir.createTmpFolder(conf);
+      Object archives = config.get("distributed_cache.archives");
+      if (archives != null) {
+        String dests = null;
+        for (String archive : (Iterable<String>) archives) {
+          String dest = tempDir.copyFromLocalFile(archive);
+          dests = (dests == null ? dest : dests + "," + dest);
+        }
+        // This is an ugly hack, we should use DistributedCache.
+        // DistributedCache however operates on a JobConf, and since
+        // Cascading expects a Map, we cannot directly pass
+        // in the parameters set into a JobConf.
+        // TODO: see if a later version of Cascading can update its properties
+        // using a JobConf
+        properties.setProperty("mapred.cache.archives", dests);
+        // TODO: see the one just above
+        properties.setProperty("mapred.create.symlink", "yes");
+      }
     }
-  }
 
-  public static void main(String args[]) {
-    Properties sysProps = System.getProperties();
-    Properties props = new Properties();
-    props.put("python.cachedir", sysProps.get("user.home") + "/.jython-cache");
-    props.put("python.cachedir.skip", "0");
-    PythonInterpreter.initialize(System.getProperties(), props, args);
-    PythonInterpreter interpreter = new PythonInterpreter();
-    interpreter.execfile(System.getProperty("user.dir") + "/" + args[0]);
+    FlowConnector.setApplicationJarClass(properties, Main.class);
+    FlowConnector flowConnector = new FlowConnector(properties);
+    Flow flow = flowConnector.connect(sources, sinks, tails);
+    if ("hadoop".equals(runningMode)) {
+      try {
+        flow.addListener(tempDir);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    // execute the flow, block until complete
+    flow.complete();
   }
 }

@@ -27,20 +27,35 @@ __author__ = 'Gabor Szabo'
 import sys, imp
 
 
-def load_source(module_name, file_name):
+def load_source(module_name, file_name, module_paths):
     """Loads the given module from a Python source file.
-    
+
+    This function is called by PythonFunctionWrapper.prepare(...) after it
+    started the Python interpreter to request the given source file to be
+    loaded. The function is to be found in this source file.
+
+    module_paths is an array of path names where the sources or other
+    supporting files are found. In particular, module_paths[0] is the location
+    of the PyCascading Python sources, and modules_paths[1] is the location of
+    the source file defining the function.
+
+    In Hadoop mode (with remote_deploy.sh), the first two -a options must
+    specify the archives of the PyCascading sources and the job sources,
+    respectively.
+
     Arguments:
     module_name -- the name of the variable read the module into
-    file_name -- the file that contains the source for the module 
+    file_name -- the file that contains the source for the module
+    module_paths -- the locations of the Python sources 
     """
+    # This one should be on the classpath from the job jar or the extracted jar
     from com.twitter.pycascading import Util
 
     cascading_jar = Util.getCascadingJar()
-    tmp_dir = Util.getJarFolder()
-    sys.path.extend((cascading_jar, tmp_dir + '/python',
-                     tmp_dir + '/python/Lib'))
-    
+    sys.path.extend((cascading_jar, module_paths[0] + '/python',
+                     module_paths[0] + '/python/Lib'))
+    sys.path.extend(module_paths[1 : ])
+
     # Haha... it's necessary to put this here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,
     # but since at that point the sys.path is not set yet to Lib, it will fail?

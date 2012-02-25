@@ -29,7 +29,10 @@ import org.python.core.PyObject;
 import org.python.core.PyString;
 import org.python.core.PyTuple;
 
+import cascading.flow.FlowProcess;
+import cascading.flow.hadoop.HadoopFlowProcess;
 import cascading.operation.BaseOperation;
+import cascading.operation.OperationCall;
 import cascading.tuple.Fields;
 import cascading.tuple.TupleEntry;
 
@@ -100,6 +103,11 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     super(numArgs, fieldDeclaration);
   }
 
+  @Override
+  public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
+    function.prepare(((HadoopFlowProcess) flowProcess).getJobConf());
+  }
+
   private void writeObject(ObjectOutputStream stream) throws IOException {
     stream.writeObject(function);
     stream.writeObject(convertInputTuples);
@@ -122,8 +130,8 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   }
 
   /**
-   * We assume that the Python functions (map and reduce) are always called
-   * with the same number of arguments. Override this to return the number of
+   * We assume that the Python functions (map and reduce) are always called with
+   * the same number of arguments. Override this to return the number of
    * arguments we will be passing in all the time.
    * 
    * @return the number of arguments the wrapper is passing in
@@ -148,8 +156,8 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   }
 
   /**
-   * Sets up the local variables that were not serialized for optimizations
-   * and unwraps function arguments wrapped with PythonFunctionWrapper.
+   * Sets up the local variables that were not serialized for optimizations and
+   * unwraps function arguments wrapped with PythonFunctionWrapper.
    */
   protected void setupArgs() {
     int numArgs = getNumParameters();
@@ -208,13 +216,9 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
       }
       i = 1;
       for (Object value : tupleEntry.getTuple()) {
-        // System.out.println("**** value: " + value);
         dictElements[i] = Py.java2py(value);
         i += 2;
       }
-      // for (PyObject o : dictElements) {
-      // System.out.println("**** dictElems: " + o);
-      // }
       PyDictionary dict = new PyDictionary(dictElements);
       result = dict;
     }

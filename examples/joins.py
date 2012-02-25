@@ -44,10 +44,10 @@ def main():
     # We need to use declared_fields if the field names
     p = (lhs & rhs) | Join(['col1', 'col1'],
                            declared_fields=['lhs1', 'lhs2', 'rhs1', 'rhs2'])
-    
+
     # Save the 2nd and 4th columns of p to output1
     p | SelectFields(['lhs2', 'rhs2']) | output1
-    
+
     # Join on the upper-cased first column of p and the 2nd column of rhs,
     # and save the output to output2
     ((p | upper_case) & (rhs | SelectFields(['col2']))) | \

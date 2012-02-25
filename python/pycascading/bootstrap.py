@@ -31,7 +31,11 @@ import sys, imp
 if __name__ == "__main__":
     # The first command line parameter must be 'hadoop' or 'local'
     # to indicate the running mode
+    # The second is the location of the PyCascading Python sources in local
+    # mode, and the PyCascading tarball in Hadoop mode
     running_mode = sys.argv[1]
+    python_dir = sys.argv[2]
+    sys.argv = sys.argv[3:]
 
     from com.twitter.pycascading import Util
 
@@ -39,10 +43,23 @@ if __name__ == "__main__":
     # This is the folder where Hadoop extracted the jar file for execution
     tmp_dir = Util.getJarFolder()
 
+    Util.setPycascadingRoot(python_dir)
+
     # The initial value of sys.path is JYTHONPATH plus whatever Jython appends
     # to it (normally the Python standard libraries the come with Jython)
-    sys.path.extend((cascading_jar, '.', tmp_dir, tmp_dir + 'python',
-                     tmp_dir + 'python/Lib'))
+    sys.path.extend((cascading_jar, '.', tmp_dir, python_dir + '/python',
+                     python_dir + '/python/Lib'))
+
+    import os
+    import encodings
+    import pycascading.pipe, getopt
+    pycascading.pipe.config = dict()
+
+    opts, args = getopt.getopt(sys.argv, 'a:')
+    pycascading.pipe.config['distributed_cache.archives'] = []
+    for opt in opts:
+        if opt[0] == '-a':
+            pycascading.pipe.config['distributed_cache.archives'].append(opt[1])
 
     # Haha... it's necessary to put this here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,
@@ -50,15 +67,14 @@ if __name__ == "__main__":
     # Instead, we can use Java's JSON decoder...
 #    import encodings
 
-    m = imp.load_source('main', sys.argv[2])
+    m = imp.load_source('main', args[0])
     # We need to explicitly inject running_mode into the tap module,
     # otherwise we cannot import bootstrap from tap and use the
     # bootstrap.running_mode from here.
-    import pycascading.pipe
-    pycascading.pipe.running_mode = running_mode
+    pycascading.pipe.config['running.mode'] = running_mode
 
     # Remove the running mode argument so that sys.argv will look like as
     # if it was coming from a simple command line execution
-    del sys.argv[0 : 2]
+    sys.argv = args[2:]
 
     m.main()

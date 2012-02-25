@@ -104,7 +104,7 @@ def random_pipe_name(prefix):
 def _python_function_to_java(function):
     """Create the serializable Java object for a Python function."""
     wrapped_func = PythonFunctionWrapper(function)
-    if running_mode == 'local':
+    if config['running.mode'] == 'local':
         wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)
     else:
         wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.HADOOP)

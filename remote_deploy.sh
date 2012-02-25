@@ -30,7 +30,8 @@ server=localhost
 server_deploys_dir='$HOME/pycascading/deploys'
 
 # The folder on the remote server where the PyCascading master jar will be
-# placed
+# placed. This must be given as an absolute path name so that the master
+# files can be found from any directory.
 server_build_dir='$HOME/pycascading/master'
 
 # Additional SSH options (see "man ssh"; private key, etc.)
@@ -48,16 +49,27 @@ The main_script gets executed by PyCascading. All additional_files are also
 copied to the remote server and submitted together with the job to Hadoop.
 
 Options:
-   -h                Show this message
+   -h                Show this message.
+
    -m                Also deploy the PyCascading master jar before submitting
-                     the job job
+                     the job.
+
    -f <file>         Copy file to the server together with main_script, but
                      do not bundle it into the Hadoop jar for submission. This
                      option may be repeated several times for multiple files.
                      File names cannot start with a dot.
-   -s <server>       The name of the remote server where Hadoop is installed
-                     and the PyCascading jar should be deployed to
-   -o <ssh_options>  Additional options for SSH (such as private key, etc.)
+
+   -s <server>       The name of the remote server where Hadoop is installed,
+                     and the PyCascading jar should be deployed to.
+
+   -o <ssh_options>  Additional options for SSH (such as private key, etc.).
+
+   -r                Run the job immediately after submission with SSH. The
+                     recommended way to run a script is either using screen
+                     or nohup, so that the job doesn't get interrupted if the
+                     terminal connection goes down. Note that no additional
+                     command line parameters can be passed in this case for
+                     the job.
 
 EOF
 }
@@ -78,9 +90,12 @@ realpath()
 # Copy the master jar over first? The -m option.
 master_first=no
 
+# Run job after submission with SSH?
+run_immediately=no
+
 declare -a files_to_copy
 
-while getopts ":hmf:s:o:" OPTION; do
+while getopts ":hmf:s:o:r" OPTION; do
 	case $OPTION in
 		h)	usage
          	exit 1
@@ -92,6 +107,8 @@ while getopts ":hmf:s:o:" OPTION; do
         s)	server="$OPTARG"
         	;;
         o)  ssh_options="$OPTARG"
+            ;;
+        r)  run_immediately=yes
             ;;
 	esac
 done
@@ -108,25 +125,22 @@ home_dir=$(realpath $(dirname "$0"))
 tmp_dir=$(mktemp -d -t PyCascading-tmp-XXXXXX)
 
 if [ $master_first == yes ]; then
-    master="$home_dir/build/pycascading.jar"
-	if [ -a "$master" ]; then
-		ln -s "$master" $home_dir/python/pycascading/bootstrap.py $tmp_dir
+    build_dir="$home_dir/build"
+	if [ -a "$build_dir/pycascading.jar" -a \
+	-a "$build_dir/pycascading.tgz" ]; then
+		ln -s "$build_dir/pycascading.jar" "$build_dir/pycascading.tgz" \
+		"$home_dir/python/pycascading/bootstrap.py" "$tmp_dir"
 	else
-	    echo Build the PyCascading master jar first in the \'java\' folder with ant. 
+	    echo 'Build the PyCascading master package first in the "java" folder with ant.'
 		exit 2
 	fi
 fi
 
 if [ "$main_file" != "" ]; then
-	mkdir $tmp_dir/sources
-	mkdir $tmp_dir/other
-	for i in "$@"; do
-		ln -s $(realpath "$i") "$tmp_dir/sources"
-	done
-
-	for i in "${files_to_copy[@]}"; do
-		ln -s $(realpath "$i") "$tmp_dir/other"
-	done
+	tar -c -z -f "$tmp_dir/sources.tgz" "$@"
+    if [ ${#files_to_copy} -gt 0 ]; then
+        tar -c -z -f "$tmp_dir/others.tgz" "${files_to_copy[@]}"
+    fi
 fi
 
 # Create a setup file that will be run on the deploy server
@@ -138,34 +152,42 @@ cat >"$tmp_dir/setup.sh" <<EOF
 if [ -e pycascading.jar ]; then
     # If we packaged the master jar, update it
     mkdir -p "$server_build_dir"
-    mv pycascading.jar bootstrap.py "$server_build_dir"
+    mv pycascading.jar pycascading.tgz bootstrap.py "$server_build_dir"
+    rm -rf "$server_build_dir/python"
+    tar -x -z -f "$server_build_dir/pycascading.tgz" -C "$server_build_dir"
 fi
-if [ -e sources ]; then
+if [ -e sources.tgz ]; then
     mkdir -p "$server_deploys_dir"
     deploy_dir=\$(mktemp -d "$server_deploys_dir/XXXXXX")
-    mv run.sh sources other "\$deploy_dir"
-    cd "\$deploy_dir"
-    if [ -e "$server_build_dir/pycascading.jar" ]; then
-        cp "$server_build_dir/pycascading.jar" deploy.jar
-        cp "$server_build_dir/bootstrap.py" .
-        jar uf deploy.jar -C sources .
-        mv other/* sources 2>/dev/null
-        rm -r other
-        echo "Run the job on $server with:"
-        echo "   \$deploy_dir/run.sh [parameters]"
-    else
-        echo 'The PyCascading master jar has not yet been deployed, do a "remote_deploy.sh -m" first.'
+    mkdir "\$deploy_dir/job"
+    mv run.sh "\$deploy_dir"
+    tar -x -z -f sources.tgz -C "\$deploy_dir/job"
+    mv sources.tgz "\$deploy_dir"
+    if [ -e others.tgz ]; then
+        tar -x -z -f others.tgz -C "\$deploy_dir/job"
     fi
+    if [ ! -e "$server_build_dir/pycascading.jar" ]; then
+        echo 'WARNING!!!'
+        echo 'The PyCascading master jar has not yet been deployed, do a "remote_deploy.sh -m" first.'
+        echo
+    fi
+    echo "Run the job on $server with:"
+    echo "   \$deploy_dir/run.sh [parameters]"
+fi
+if [ \$1 == yes ]; then
+    \$deploy_dir/run.sh
 fi
 EOF
 chmod +x "$tmp_dir/setup.sh"
 
 # Create a small script on the remote server that runs the job
-cat >$tmp_dir/run.sh <<EOF
+cat >"$tmp_dir/run.sh" <<EOF
 #!/usr/bin/env bash
 # Run the PyCascading job
-cd \$(dirname "\$0")/sources
-hadoop jar ../deploy.jar ../bootstrap.py hadoop "$(basename "$main_file")" "\$@"
+cd "\$(dirname "\$0")/job"
+hadoop jar "$server_build_dir/pycascading.jar" "$server_build_dir/bootstrap.py" \\
+hadoop "$server_build_dir" -a "$server_build_dir/pycascading.tgz" -a ../sources.tgz \\
+"$(basename "$main_file")" "\$@"
 EOF
 chmod +x "$tmp_dir/run.sh"
 
@@ -173,5 +195,5 @@ chmod +x "$tmp_dir/run.sh"
 cd "$tmp_dir"
 tar czhf - . | ssh $server $ssh_options \
 "dir=\$(mktemp -d -t PyCascading-tmp-XXXXXX); cd \"\$dir\"; tar xfz -; " \
-"./setup.sh; rm -r \"\$dir\""
+"./setup.sh $run_immediately; rm -r \"\$dir\""
 rm -r "$tmp_dir"

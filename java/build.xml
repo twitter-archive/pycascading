@@ -27,7 +27,6 @@
 	<property name="build.dir" location="${basedir}/../build" />
 	<property name="build.classes" location="${build.dir}/classes" />
 	<property name="build.libs" location="${build.classes}/lib" />
-	<property name="python.libs" location="${build.classes}/python" />
 
 	<property name="python.dir" value="${basedir}/../python" />
 
@@ -67,7 +66,7 @@
             <classpath refid="java.classpath"/>
 		</javac>
 	</target>
-	
+
 	<target name="jar" depends="compile" description="Creates a PyCascading jar with dependencies">
 		<!-- Copy Cascading & Jython jars -->
 		<copy todir="${build.libs}">
@@ -77,24 +76,23 @@
 			<fileset dir="${cascading.home}/lib/xml" includes="*.jar" />
 			<fileset dir="${jython.home}" includes="jython.jar" />
 		</copy>
-		
-		<copy todir="${python.libs}">
-			<fileset dir="${python.dir}" />
-		</copy>
-		
-		<copy todir="${python.libs}/Lib">
-			<fileset dir="${jython.libs}" excludes="*.class" />
-		</copy>
-		
+
 		<jar jarfile="${build.dir}/pycascading.jar">
 			<fileset dir="${build.classes}" />
 
 			<manifest>
 				<!-- the project Main class, by default assumes Main -->
-				<attribute name="Main-Class" value="com.twitter.pycascading.Util" />
+				<attribute name="Main-Class" value="com.twitter.pycascading.Main" />
 			</manifest>
 		</jar>
 
+		<!-- Apparently need to use .tgz for the archive, .tar.gz didn't work.
+		This file is going to be put in the Hadoop distributed cache, and if
+		the extension is .tar.gz, my installation didn't extract it. -->
+		<tar destfile="${build.dir}/pycascading.tgz" compression="gzip">
+			<tarfileset dir="${python.dir}" prefix="python" excludes="**/*.class" />
+			<tarfileset dir="${jython.libs}" prefix="python/Lib" excludes="**/*.class" />
+		</tar>
 	</target>
 
 	<target name="clean">

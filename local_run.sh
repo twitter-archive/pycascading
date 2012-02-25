@@ -88,4 +88,5 @@ fi
 
 # sys.path will be initialized from JYTHONPATH
 JYTHONPATH="$home_dir/python" java -classpath "$classpath" \
-org.python.util.jython "$home_dir/python/pycascading/bootstrap.py" local "$@"
+org.python.util.jython "$home_dir/python/pycascading/bootstrap.py" \
+local "$home_dir" "$@"
