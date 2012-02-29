@@ -19,9 +19,6 @@ A 'reduce' UDF is similar to the built-in Python reduce function. It takes a
 group of tuples that have been previously grouped by GroupBy, and yields an
 arbitrary number of new tuples for the group (it is most useful though to do
 some aggregation on the group). The tuples are fetched using an iterator.  
-
-The data is expected in the pycascading_data/ folder if run in local mode,
-and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop. 
 """
 
 from pycascading.helpers import *

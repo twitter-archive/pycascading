@@ -20,6 +20,10 @@ The fields have to implement Serializable.
 Currently these fields cannot be joined on, since we do not want to
 deserialize them for each comparison. We are also doing a join here to test
 the serializers.
+
+Note that the serialization is currently done using the standard Java
+serialization framework, and thus is slow and produces large blobs. There are
+plans to use more efficient serializers in the future.
 """
 
 

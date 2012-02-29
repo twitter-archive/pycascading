@@ -21,9 +21,6 @@ executing the original pipe again.
 
 This is useful if we want to repeatedly run the script with modifications
 to parts that do not change the cached results. 
-
-The data is expected in the pycascading_data/ folder if run in local mode,
-and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop. 
 """
 
 import sys

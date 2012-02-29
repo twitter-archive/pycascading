@@ -13,12 +13,7 @@
 # limitations under the License.
 #
 
-"""Example demonstrating the use of joining and splitting of streams.
-
-The data is expected in the pycascading_data/ folder if run in local mode,
-and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop. 
-These files were copied from the Cascading examples. 
-"""
+"""Example demonstrating the use of joining and splitting of tuple streams."""
 
 from pycascading.helpers import *
 

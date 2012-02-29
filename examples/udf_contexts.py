@@ -17,9 +17,6 @@
 
 The context is serialized and shipped to where the UDFs are executed. This is
 a way also to perform replicated joins on constant data.
-
-The data is expected in the pycascading_data/ folder if run in local mode,
-and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop. 
 """
 
 from pycascading.helpers import *
@@ -27,6 +24,11 @@ from pycascading.helpers import *
 
 @filter()
 def starts_with_letters(tuple, letters):
+    """Only let tuples through whose second field starts with a given letter.
+
+    The set of acceptable initial letters is passed in the letters parameter,
+    and is defined at the time when we build the flow.
+    """
     try:
         return tuple.get(1)[0].upper() in letters
     except:
@@ -37,7 +39,7 @@ def main():
     flow = Flow()
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
-    
+
     input | starts_with_letters(set(['A', 'T'])) | SelectFields('line') | output
-    
+
     flow.run()

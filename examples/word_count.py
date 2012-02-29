@@ -13,23 +13,28 @@
 # limitations under the License.
 #
 
-"""Simple word count example.
-
-The data is expected in the pycascading_data/ folder if run in local mode,
-and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop. 
-"""
+"""Simple word count example."""
 
 from pycascading.helpers import *
 
 
 @map(produces=['word'])
 def split_words(tuple):
+    """The function to split the line and return several new tuples.
+
+    The tuple to operate on is passed in as the first parameter. We are
+    yielding the results in a for loop back. Each word becomes the only field
+    in a new tuple stream, and the string to be split is the 2nd field of the
+    input tuple.
+    """
     for word in tuple.get(1).split():
         yield [word]
 
 
 def main():
     flow = Flow()
+    # The TextLine() scheme produces tuples where the first field is the line
+    # number, and the second is the line as a string.
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
 

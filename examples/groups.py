@@ -13,7 +13,11 @@
 # limitations under the License.
 #
 
-"""Example demonstrating the use of predefined subassemblies."""
+"""
+
+The data is expected in the pycascading_data/ folder if run in local mode,
+and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop. 
+"""
 
 from pycascading.helpers import *
 
@@ -25,7 +29,6 @@ def main():
                               'pycascading_data/repeats.txt'))
     output = flow.tsv_sink('pycascading_data/out')
 
-    # This selects the distinct records considering all fields
-    repeats | SubAssembly(Unique, Fields.ALL) | output
+    repeats | GroupBy('col1') | Every(aggregator=Count(), output_selector=Fields.) | output
 
     flow.run()
