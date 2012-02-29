@@ -13,7 +13,7 @@
 	limitations under the License.
 -->
 
-<project name="PyCascading" basedir="." default="jar">
+<project name="PyCascading" basedir="." default="all">
 
 	<property file="${basedir}/dependencies.properties" />
 
@@ -67,7 +67,8 @@
 		</javac>
 	</target>
 
-	<target name="jar" depends="compile" description="Creates a PyCascading jar with dependencies">
+	<target name="jar" depends="compile"
+		description="Creates a PyCascading jar with dependencies">
 		<!-- Copy Cascading & Jython jars -->
 		<copy todir="${build.libs}">
 			<fileset dir="${cascading.home}" includes="cascading-core-*.jar" />
@@ -85,7 +86,9 @@
 				<attribute name="Main-Class" value="com.twitter.pycascading.Main" />
 			</manifest>
 		</jar>
+	</target>
 
+	<target name="tgz" description="Creates the Python PyCascading archive">
 		<!-- Apparently need to use .tgz for the archive, .tar.gz didn't work.
 		This file is going to be put in the Hadoop distributed cache, and if
 		the extension is .tar.gz, my installation didn't extract it. -->
@@ -93,6 +96,10 @@
 			<tarfileset dir="${python.dir}" prefix="python" excludes="**/*.class" />
 			<tarfileset dir="${jython.libs}" prefix="python/Lib" excludes="**/*.class" />
 		</tar>
+	</target>
+
+	<target name="all" depends="jar,tgz"
+		description="Creates a jar and tgz for job submission">
 	</target>
 
 	<target name="clean">
