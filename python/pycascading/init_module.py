@@ -52,9 +52,15 @@ def load_source(module_name, file_name, module_paths):
     from com.twitter.pycascading import Util
 
     cascading_jar = Util.getCascadingJar()
-    sys.path.extend((cascading_jar, module_paths[0] + '/python',
-                     module_paths[0] + '/python/Lib'))
+    jython_dir = module_paths[0]
+
+    sys.path.extend((cascading_jar, jython_dir + '/python',
+                     jython_dir + '/python/Lib'))
     sys.path.extend(module_paths[1 : ])
+
+    # Allow importing of user-installed Jython packages
+    import site
+    site.addsitedir(jython_dir + 'python/Lib/site-packages')
 
     # Haha... it's necessary to put this here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,

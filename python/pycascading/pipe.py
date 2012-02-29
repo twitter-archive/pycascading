@@ -13,7 +13,11 @@
 # limitations under the License.
 #
 
-"""Build and execute Cascading pipelines in Python.
+"""Build and execute Cascading flows in Python.
+
+Flows are built from Cascading operations that reshape, join, and split
+streams. Some operations make use of user-defined functions, for instance, the
+Each operation applies an UDF to each tuple seen in the stream.
 
 Exports the following:
 Pipe

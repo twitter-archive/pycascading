@@ -6,10 +6,10 @@ PyCascading. They use input files in the 'pycascading\_data' folder, so
 before running the examples, make sure that:
 
 * in local mode, you cd first to the examples/ directory (or wherever
-pycascading\_data/ is found), and use local\_run.sh
+pycascading\_data/ is found), and use local\_run.sh to run the example like
 * in Hadoop mode, you copy the data folder to HDFS first by running
 copy\_data\_to\_hdfs.sh, or
 
 	hadoop fs -put pycascading\_data pycascading\_data
 
-    and then invoke remove\_deploy.sh
+    and then invoke remote\_deploy.sh

@@ -50,6 +50,10 @@ if __name__ == "__main__":
     sys.path.extend((cascading_jar, '.', tmp_dir, python_dir + '/python',
                      python_dir + '/python/Lib'))
 
+    # Allow importing of user-installed Jython packages
+    import site
+    site.addsitedir(python_dir + 'python/Lib/site-packages')
+
     import os
     import encodings
     import pycascading.pipe, getopt

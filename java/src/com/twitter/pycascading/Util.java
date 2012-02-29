@@ -36,9 +36,9 @@ public class Util {
   /**
    * Get the temporary folder where the job jar was extracted to by Hadoop.
    * 
-   * TODO: This only works if we distribute PyCascading as classes. If I will
-   * switch to using jars, I need to remove the last part of the path which is
-   * the jar file.
+   * TODO: This only works if we distribute PyCascading as classes. If I switch
+   * to using jars, I need to remove the last part of the path which is the jar
+   * file.
    * 
    * @return the temporary folder with the contents of the job jar
    */
@@ -67,7 +67,7 @@ public class Util {
   /**
    * We use the "pycascading.root" Java system property to store the location of
    * the Python sources for PyCascading. This is only used in local mode. This
-   * is needed so that we know where to set the import path when we spin up the
+   * is needed so that we know where to set the import path when we start up the
    * mappers and reducers.
    * 
    * @param root
