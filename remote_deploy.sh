@@ -37,13 +37,16 @@ server_build_dir='$HOME/pycascading/master'
 # Additional SSH options (see "man ssh"; private key, etc.)
 ssh_options=""
 
+# Additional Hadoop options to be put in the run.sh runner
+hadoop_options=""
+
 
 # Options over, the script begins here
 
 usage()
 {
-	cat << EOF
-Usage: $0 [options] <main_script> [additional_files]
+	cat <<EOF
+Usage: $(basename "$0") [options] <main_script> [additional_files]
 
 The main_script gets executed by PyCascading. All additional_files are also
 copied to the remote server and submitted together with the job to Hadoop.
@@ -63,6 +66,10 @@ Options:
                      and the PyCascading jar should be deployed to.
 
    -o <ssh_options>  Additional options for SSH (such as private key, etc.).
+                     ssh_options is one string enclosed by "s or 's, even if
+                     there are several parameters.
+
+   -O <hadoop_opts>  Additional Hadoop options to be put in the running script.
 
    -r                Run the job immediately after submission with SSH. The
                      recommended way to run a script is either using screen
@@ -75,6 +82,8 @@ EOF
 }
 
 
+# Returns the absolute path for the parameter. We cannot use either realpath
+# or readlink, as these may not be installed on MacOS.
 realpath()
 {
     if echo "$1" | grep '^/' >/dev/null; then
@@ -87,15 +96,24 @@ realpath()
 }
 
 
+# Remove the leading slashes from a path. This is needed when we package the
+# Python sources as tar does the same, and on extraction there are no leading
+# slashes.
+remove_leading_slash()
+{
+    echo "$1" | sed 's/^\/*//'
+}
+
+
 # Copy the master jar over first? The -m option.
 master_first=no
 
 # Run job after submission with SSH?
-run_immediately=no
+run_immediately='dont_run'
 
 declare -a files_to_copy
 
-while getopts ":hmf:s:o:r" OPTION; do
+while getopts ":hmf:s:o:O:r" OPTION; do
 	case $OPTION in
 		h)	usage
          	exit 1
@@ -108,7 +126,9 @@ while getopts ":hmf:s:o:r" OPTION; do
         	;;
         o)  ssh_options="$OPTARG"
             ;;
-        r)  run_immediately=yes
+        O)  hadoop_options="$OPTARG"
+            ;;
+        r)  run_immediately='do_run'
             ;;
 	esac
 done
@@ -121,7 +141,7 @@ if [ "$main_file" == "" -a $master_first == no ]; then
 fi
 
 home_dir=$(realpath $(dirname "$0"))
-# This is the version that works both on Linux and Mac OS X
+# This is the version that works both on Linux and MacOS
 tmp_dir=$(mktemp -d -t PyCascading-tmp-XXXXXX)
 
 if [ $master_first == yes ]; then
@@ -143,9 +163,11 @@ if [ "$main_file" != "" ]; then
     fi
 fi
 
-# Create a setup file that will be run on the deploy server
+#
+# Create a setup file that will be run on the deploy server after everything
+# is copied over.
+#
 cat >"$tmp_dir/setup.sh" <<EOF
-#!/usr/bin/env bash
 #
 # This script is run on the deploy server to set up the PyCascading job folder
 #
@@ -174,26 +196,29 @@ if [ -e sources.tgz ]; then
     echo "Run the job on $server with:"
     echo "   \$deploy_dir/run.sh [parameters]"
 fi
-if [ \$1 == yes ]; then
+if [ \$1 == 'do_run' ]; then
     \$deploy_dir/run.sh
 fi
 EOF
 chmod +x "$tmp_dir/setup.sh"
 
+#
 # Create a small script on the remote server that runs the job
+#
+main_file=$(remove_leading_slash "$main_file")
 cat >"$tmp_dir/run.sh" <<EOF
-#!/usr/bin/env bash
 # Run the PyCascading job
 cd "\$(dirname "\$0")/job"
-hadoop jar "$server_build_dir/pycascading.jar" "$server_build_dir/bootstrap.py" \\
-hadoop "$server_build_dir" -a "$server_build_dir/pycascading.tgz" -a ../sources.tgz \\
-"$(basename "$main_file")" "\$@"
+hadoop $hadoop_options jar "$server_build_dir/pycascading.jar" \\
+"$server_build_dir/bootstrap.py" hadoop "$server_build_dir" \\
+-a "$server_build_dir/pycascading.tgz" -a ../sources.tgz \\
+"$main_file" "\$@"
 EOF
 chmod +x "$tmp_dir/run.sh"
 
 # Upload the package to the server and run the setup script
 cd "$tmp_dir"
-tar czhf - . | ssh $server $ssh_options \
-"dir=\$(mktemp -d -t PyCascading-tmp-XXXXXX); cd \"\$dir\"; tar xfz -; " \
+tar -c -z -h -f - . | ssh $server $ssh_options \
+"dir=\$(mktemp -d -t PyCascading-tmp-XXXXXX); cd \"\$dir\"; tar -x -z -f -; " \
 "./setup.sh $run_immediately; rm -r \"\$dir\""
 rm -r "$tmp_dir"
