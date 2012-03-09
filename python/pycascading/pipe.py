@@ -5,7 +5,7 @@
 # You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -107,6 +107,15 @@ def random_pipe_name(prefix):
 
 def _python_function_to_java(function):
     """Create the serializable Java object for a Python function."""
+    import inspect, py_compile
+    from org.python.core import BytecodeLoader
+
+    source = inspect.getsource(function)
+    function_name = function.func_name
+    print 'source:', source
+    print 'name:', function_name
+    exec(source)
+    exec('print ' + function_name + '("hi there")')
     wrapped_func = PythonFunctionWrapper(function)
     if config['running.mode'] == 'local':
         wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)

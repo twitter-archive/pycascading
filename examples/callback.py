@@ -16,6 +16,8 @@
 """
 Contrived example showing that you can pass functions as args to a UDF.
 Also shows how to use keyword args (just the way it's expected).
+
+Thanks to ebernhardson.
 """
 
 from pycascading.helpers import *
@@ -35,9 +37,9 @@ def main():
     flow = Flow()
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
-  
+
     p = input | \
     word_count(100, second_inc=200, callback=word_count_callback) | \
     output
-    
+
     flow.run()

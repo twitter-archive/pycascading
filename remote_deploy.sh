@@ -84,6 +84,7 @@ EOF
 
 # Returns the absolute path for the parameter. We cannot use either realpath
 # or readlink, as these may not be installed on MacOS.
+# Thanks to Simon Radford.
 realpath()
 {
     if echo "$1" | grep '^/' >/dev/null; then

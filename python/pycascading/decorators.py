@@ -90,7 +90,7 @@ def _function_decorator(additional_parameters):
 
 def numargs_expected(num):
     """The function expects a num number of fields in the input tuples.
-    
+
     Arguments:
     num -- the number of fields that the input tuples must have
     """
@@ -99,7 +99,7 @@ def numargs_expected(num):
 
 def python_list_expected():
     """PyCascading will pass in the input tuples as Python lists.
-    
+
     There is some performance penalty as all the incoming tuples need to be
     converted to Python lists.
     """
@@ -109,7 +109,7 @@ def python_list_expected():
 
 def python_dict_expected():
     """The input tuples are converted to Python dicts for this function.
-    
+
     PyCascading will convert all input tuples to a Python dict for this
     function. The keys of the dict are the Cascading field names and the values
     are the values read from the tuple.
@@ -119,15 +119,15 @@ def python_dict_expected():
     """
     return _function_decorator({ 'input_conversion' :
     CascadingBaseOperationWrapper.ConvertInputTuples.PYTHON_DICT })
-    
-    
+
+
 def collects_output():
     """The function expects an output collector where output tuples are added.
-    
+
     PyCascading will pass in an output collector of Cascading class
     TupleEntryCollector to which the function can add output tuples by
     calling its 'add' method.
-    
+
     Use this if performance is important, as no conversion takes place between
     Python objects and Cascading tuples.
     """
@@ -139,12 +139,12 @@ def yields():
     """
     The function is a generator that 'yield's output tuples, in the pythonic
     sense.
-    
+
     PyCascading considers this function a generator that yields one or more
     output tuples before returning. If this decorator is not used, the way the
     function emits tuples is determined automatically (which can be either
     through yielding several values or returning a single value).
-    
+
     We can safely yield Nones or not yield anything at all; no output tuples
     will be emitted in this case.  
     """
@@ -154,7 +154,7 @@ def yields():
 
 def produces_python_list():
     """The function emits Python lists as tuples.
-    
+
     These will be converted by PyCascading to Cascading Tuples, so this impacts
     performance.
     """
@@ -164,7 +164,7 @@ def produces_python_list():
 
 def produces_tuples():
     """The function emits native Cascading Tuples or TupleEntrys.
-    
+
     No conversion takes place so this is a fast way to add tuples to the
     output.
     """
@@ -174,22 +174,22 @@ def produces_tuples():
 
 def flowprocess_expected():
     """Pass in the flowProcess variable to the Python function.
-    
+
     Cascading supplies a FlowProcess variable to every custom function call.
     This attribute instructs PyCascading to pass it on to the Python function.
     """
     return _function_decorator({ 'flow_process_pass_in' : \
     CascadingRecordProducerWrapper.FlowProcessPassIn.YES })
-    
+
 
 def filter():
     """This makes the function a filter.
-    
+
     The function should return 'true' for each input tuple that should stay
     in the output stream, and 'false' when it needs to be filtered out.
-    
+
     IMPORTANT: this behavior is the opposite of what Cascading expects!
-    
+
     Note that the same effect can be attained by a map that returns the tuple
     itself or None if it should be filtered out.
     """
@@ -198,25 +198,25 @@ def filter():
 
 def map(produces=None):
     """The function decorated with this emits output tuples for each input one.
-    
+
     The function is called for all the tuples in the input stream as happens
     in a Cascading Each. The function input tuple is passed in to the function
     as the first parameter and is a native Cascading TupleEntry unless the
     python_list_expected() or python_dict_expected() decorators are also used.
-    
+
     If collects_output() is used, the 2nd parameter is a Cascading
     TupleEntryCollector to which Tuples or TupleEntrys can be added. Otherwise,
     the function may return an output tuple or yield any number of tuples if
     it is a generator.
-    
+
     Whether the function yields or returns will be determined automatically if
     no decorators used that specify this, and so will be the output tuple type
     (it can be Python list or a Cascading Tuple).
-    
+
     Note that the meaning of 'map' used here is closer to the Python map()
     builtin than the 'map' in MapReduce. It essentially means that each input
     tuple needs to be transformed (mapped) by a custom function.
-    
+
     Arguments:
     produces -- a list of output field names
     """
@@ -225,7 +225,7 @@ def map(produces=None):
 
 def reduce(produces=None):
     """The function decorated with reduce takes a group and emits aggregates.
-    
+
     A reduce function must follow a Cascading Every operation, which comes
     after a GroupBy. The function will be called for each grouping on a
     different reducer. The first parameter passed to the function is the
@@ -236,13 +236,13 @@ def reduce(produces=None):
     that holds a copy of the current TupleEntry, thus we cannot cache this for
     subsequent operations in the function. Instead, take iterator.getTuple() or
     create a new TupleEntry by deep copying the item in the loop.
-    
+
     Cascading also doesn't automatically add the group field to the output
     tuples, so we need to do it manually. In fact a Cascading Buffer is more
     powerful than an aggregator, although it can be used as one. It acts more
     like a function emitting arbitrary tuples for groups, rather than just a
     simple aggregator.
-    
+
     See http://groups.google.com/group/cascading-user/browse_thread/thread/f5e5f56f6500ed53/f55fdd6bba399dcf?lnk=gst&q=scope#f55fdd6bba399dcf
     """
     return _function_decorator({ 'type' : 'reduce', 'produces' : produces })
