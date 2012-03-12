@@ -27,6 +27,27 @@ __author__ = 'Gabor Szabo'
 import sys, imp
 
 
+def setup_paths(module_paths):
+    from com.twitter.pycascading import Util
+
+    cascading_jar = Util.getCascadingJar()
+    jython_dir = module_paths[0]
+
+    sys.path.extend((cascading_jar, jython_dir + '/python',
+                     jython_dir + '/python/Lib'))
+    sys.path.extend(module_paths[1 : ])
+
+    # Allow importing of user-installed Jython packages
+    # Thanks to Simon Radford
+    import site
+    site.addsitedir(jython_dir + 'python/Lib/site-packages')
+
+    # Haha... it's necessary to put this here, otherwise simplejson won't work.
+    # Maybe it's automatically imported in the beginning of a Jython program,
+    # but since at that point the sys.path is not set yet to Lib, it will fail?
+    #import encodings
+
+
 def load_source(module_name, file_name, module_paths):
     """Loads the given module from a Python source file.
 
@@ -59,6 +80,7 @@ def load_source(module_name, file_name, module_paths):
     sys.path.extend(module_paths[1 : ])
 
     # Allow importing of user-installed Jython packages
+    # Thanks to Simon Radford
     import site
     site.addsitedir(jython_dir + 'python/Lib/site-packages')
 
@@ -67,4 +89,8 @@ def load_source(module_name, file_name, module_paths):
     # but since at that point the sys.path is not set yet to Lib, it will fail?
     #import encodings
 
-    return imp.load_source(module_name, file_name)
+    print 'loading source', file_name
+
+#    return imp.load_source(module_name, file_name)
+    execfile(file_name)
+    print 'map now:', map, g

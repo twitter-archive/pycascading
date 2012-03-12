@@ -37,7 +37,7 @@ random_pipe_name
 __author__ = 'Gabor Szabo'
 
 
-import types
+import types, inspect
 
 import cascading.pipe
 import cascading.tuple
@@ -45,7 +45,9 @@ import cascading.operation
 import cascading.pipe.cogroup
 from com.twitter.pycascading import CascadingFunctionWrapper, \
 CascadingFilterWrapper, CascadingAggregatorWrapper, CascadingBufferWrapper, \
-PythonFunctionWrapper
+PythonFunctionWrapper, CascadingBaseOperationWrapper, \
+CascadingRecordProducerWrapper
+
 
 import java.lang.Integer
 
@@ -107,16 +109,49 @@ def random_pipe_name(prefix):
 
 def _python_function_to_java(function):
     """Create the serializable Java object for a Python function."""
-    import inspect, py_compile
-    from org.python.core import BytecodeLoader
 
-    source = inspect.getsource(function)
+    def remove_indents(code):
+        """Remove leading indents from the function's source code.
+
+        Otherwise an exec later when running the function would complain about
+        the indents.
+        """
+        i = 0
+        indent = 0
+        blanks = -1
+        result = ''
+        while i < len(code):
+            if blanks < 0:
+                if code[i] == ' ':
+                    indent += 1
+                elif code[i] == '\t':
+                    indent += 8
+                else:
+                    result = code[i]
+                    blanks = indent
+            else:
+                if blanks >= indent:
+                    # This is to substitute indenting tabs if necessary
+                    result += ' ' * (blanks - indent) + code[i]
+                    blanks = indent
+                else:
+                    if code[i] == ' ':
+                        blanks += 1
+                    elif code[i] == '\t':
+                        blanks += 8
+                    else:
+                        # This happens when in one line we have less indent
+                        # than in the first, but this should have been caught by
+                        # the compiler, so we shouldn't get here ever.
+                        raise Exception('Indents mismatch')
+                if code[i] == '\n':
+                    blanks = 0
+            i += 1
+        return result
+
+    source = remove_indents(inspect.getsource(function))
     function_name = function.func_name
-    print 'source:', source
-    print 'name:', function_name
-    exec(source)
-    exec('print ' + function_name + '("hi there")')
-    wrapped_func = PythonFunctionWrapper(function)
+    wrapped_func = PythonFunctionWrapper(function, source)
     if config['running.mode'] == 'local':
         wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)
     else:
@@ -218,6 +253,8 @@ class Chainable(_Stackable):
             other = Apply(other)
         elif isinstance(other, cascading.operation.Filter):
             other = Apply(other)
+        elif inspect.isroutine(other):
+            other = DecoratedFunction.decorate_function(other)
         if isinstance(other, Chainable):
             result._assembly = other._create_with_parent(self)
             result.add_context(self.context)
@@ -315,6 +352,14 @@ class DecoratedFunction(Operation):
         """
         Use the appropriate operation when the function is used in the pipe.
         """
+        if self.decorators['type'] == 'auto':
+            # Determine the type of function automatically based on the parent
+            if isinstance(parent, Chainable) and \
+            isinstance(parent.get_assembly(), cascading.pipe.GroupBy):
+                self.decorators['type'] = 'reduce'
+            else:
+                raise Exception('Function was not decorated, and I cannot ' \
+                                'decide if it is a map or a filter')
         if self.decorators['type'] == 'map':
             return Apply(self)._create_with_parent(parent)
         elif self.decorators['type'] == 'filter':
@@ -322,8 +367,8 @@ class DecoratedFunction(Operation):
         elif self.decorators['type'] == 'reduce':
             return Every(buffer=self)._create_with_parent(parent)
         else:
-            raise Exception
-        ('Function was not annotated with @map(), @filter(), or @reduce()')
+            raise Exception('Function was not annotated with ' \
+                            '@map(), @filter(), or @reduce()')
 
     def _wrap_argument_functions(self, args, kwargs):
         """
@@ -340,6 +385,23 @@ class DecoratedFunction(Operation):
             if type(kwargs[key]) == types.FunctionType:
                 kwargs[key] = _python_function_to_java(kwargs[key])
         return (tuple(args_out), kwargs)
+
+    @classmethod
+    def decorate_function(cls, function):
+        dff = DecoratedFunction()
+        dff.decorators['function'] = function
+        dff.decorators['type'] = 'auto'
+        dff.decorators['input_conversion'] = \
+        CascadingBaseOperationWrapper.ConvertInputTuples.NONE
+        dff.decorators['output_method'] = \
+        CascadingRecordProducerWrapper.OutputMethod.YIELDS_OR_RETURNS
+        dff.decorators['output_type'] = \
+        CascadingRecordProducerWrapper.OutputType.AUTO
+        dff.decorators['flow_process_pass_in'] = \
+        CascadingRecordProducerWrapper.FlowProcessPassIn.NO
+        dff.decorators['args'] = None
+        dff.decorators['kwargs'] = None
+        return dff
 
 
 class _Each(Operation):

@@ -69,19 +69,7 @@ def _function_decorator(additional_parameters):
             dff = function_or_callabledict
         else:
             # The original function comes next
-            dff = DecoratedFunction()
-            dff.decorators['function'] = function_or_callabledict
-            dff.decorators['type'] = 'none'
-            dff.decorators['input_conversion'] = \
-            CascadingBaseOperationWrapper.ConvertInputTuples.NONE
-            dff.decorators['output_method'] = \
-            CascadingRecordProducerWrapper.OutputMethod.YIELDS_OR_RETURNS
-            dff.decorators['output_type'] = \
-            CascadingRecordProducerWrapper.OutputType.AUTO
-            dff.decorators['flow_process_pass_in'] = \
-            CascadingRecordProducerWrapper.FlowProcessPassIn.NO
-            dff.decorators['args'] = None
-            dff.decorators['kwargs'] = None
+            dff = DecoratedFunction.decorate_function(function_or_callabledict)
         # Add the attributes to the decorated function
         dff.decorators.update(additional_parameters)
         return dff

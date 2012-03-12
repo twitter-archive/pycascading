@@ -97,6 +97,10 @@ public class CascadingRecordProducerWrapper extends CascadingBaseOperationWrappe
         outputType = OutputType.TUPLE;
       else if (TupleEntry.class.isInstance(ret))
         outputType = OutputType.TUPLEENTRY;
+      else
+        throw new RuntimeException(
+                "Python function must return a list, Tuple, or TupleEnty. We got: "
+                        + ret.getClass());
     }
     if (outputType == OutputType.PYTHON_LIST)
       // Convert the returned Python list to a tuple

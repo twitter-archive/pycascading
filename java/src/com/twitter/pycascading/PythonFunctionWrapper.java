@@ -47,9 +47,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.net.URISyntaxException;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
@@ -67,6 +65,7 @@ import org.python.util.PythonInterpreter;
  * 
  * @author Gabor Szabo
  */
+@SuppressWarnings("deprecation")
 public class PythonFunctionWrapper implements Serializable {
   private static final long serialVersionUID = 4944819638591252128L;
 
@@ -75,6 +74,7 @@ public class PythonFunctionWrapper implements Serializable {
   }
 
   private PyObject pythonFunction;
+  String funcSource;
   private PyString funcName, sourceFile;
   private RunningMode runningMode;
 
@@ -86,20 +86,23 @@ public class PythonFunctionWrapper implements Serializable {
   public PythonFunctionWrapper() {
   }
 
-  public PythonFunctionWrapper(PyFunction function) {
-    this.pythonFunction = function;
+  public PythonFunctionWrapper(PyFunction function, String funcSource) {
+    this.funcName = function.getFuncName();
+    this.funcSource = funcSource;
+    pythonFunction = function;
     sourceFile = (PyString) function.func_code.__getattr__("co_filename");
-    funcName = function.getFuncName();
   }
 
   private void writeObject(ObjectOutputStream stream) throws IOException {
     stream.writeObject(funcName);
+    stream.writeObject(funcSource);
     stream.writeObject(sourceFile);
     stream.writeObject(runningMode);
   }
 
   private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
     funcName = (PyString) stream.readObject();
+    funcSource = (String) stream.readObject();
     sourceFile = (PyString) stream.readObject();
     runningMode = (RunningMode) stream.readObject();
   }
@@ -131,9 +134,17 @@ public class PythonFunctionWrapper implements Serializable {
     interpreter.set("module_name", "m");
     interpreter.set("file_name", sourceDir + sourceFile);
     interpreter.set("module_paths", modulePaths);
-    PyObject module = (PyObject) interpreter
-            .eval("load_source(module_name, file_name, module_paths)");
-    pythonFunction = module.__getattr__(funcName);
+    interpreter.set("map_input_file", conf.get("map.input.file"));
+    interpreter.set("jobconf", conf);
+    interpreter.eval("setup_paths(module_paths)");
+    // PyObject module = (PyObject) interpreter
+    // .eval("load_source(module_name, file_name, module_paths)");
+    // We need to do this so that nested functions can also be used
+    interpreter.execfile(sourceDir + sourceFile);
+    interpreter.exec(funcSource);
+    // pythonFunction = module.__getattr__(funcName);
+    pythonFunction = interpreter.get(funcName.asString());
+    System.out.println("we got: " + pythonFunction.getClass());
     if (!PyFunction.class.isInstance(pythonFunction)) {
       // function is assumed to be decorated, resulting in a DecoratedFunction.
       // The function was decorated so we need to get the original back
@@ -141,8 +152,13 @@ public class PythonFunctionWrapper implements Serializable {
       // out, as a DecoratedFunction is callable anyway.
       // If we were to decorate the functions with other decorators as
       // well, we certainly cannot use this.
-      pythonFunction = ((PyDictionary) (pythonFunction.__getattr__(new PyString("decorators"))))
-              .get(new PyString("function"));
+      try {
+        pythonFunction = ((PyDictionary) (pythonFunction.__getattr__(new PyString("decorators"))))
+                .get(new PyString("function"));
+      } catch (Exception e) {
+        throw new RuntimeException(
+                "Expected a Python function or a decorated function. This shouldn't happen.");
+      }
     }
   }
 
