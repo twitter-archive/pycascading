@@ -53,6 +53,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   }
 
   private PythonFunctionWrapper function;
+  private PythonEnvironment pythonEnvironment;
   private ConvertInputTuples convertInputTuples;
 
   private PyTuple contextArgs = null;
@@ -105,10 +106,13 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
 
   @Override
   public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
-    function.prepare(((HadoopFlowProcess) flowProcess).getJobConf());
+    pythonEnvironment = new PythonEnvironment();
+    function.prepare(((HadoopFlowProcess) flowProcess).getJobConf(), pythonEnvironment);
   }
 
   private void writeObject(ObjectOutputStream stream) throws IOException {
+    // PythonObjectOutputStream pythonStream = new
+    // PythonObjectOutputStream(stream);
     stream.writeObject(function);
     stream.writeObject(convertInputTuples);
     stream.writeObject(new Boolean(contextArgs != null));

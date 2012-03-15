@@ -60,10 +60,8 @@ public class CascadingFunctionWrapper extends CascadingRecordProducerWrapper imp
     setupArgs();
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
-    // TODO Auto-generated method stub
     super.prepare(flowProcess, operationCall);
   }
 
@@ -71,7 +69,7 @@ public class CascadingFunctionWrapper extends CascadingRecordProducerWrapper imp
   public void operate(FlowProcess flowProcess, FunctionCall functionCall) {
     Object inputTuple = convertInput(functionCall.getArguments());
     TupleEntryCollector outputCollector = functionCall.getOutputCollector();
-    
+
     callArgs[0] = Py.java2py(inputTuple);
     if (outputMethod == OutputMethod.COLLECTS) {
       // The Python function collects the output tuples itself into the output

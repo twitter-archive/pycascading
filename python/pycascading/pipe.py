@@ -175,6 +175,7 @@ def _wrap_function(function, casc_function_type):
     if isinstance(function, cascading.operation.Operation):
         return function
     if isinstance(function, DecoratedFunction):
+        print '*** dff:', function.decorators
         # Build the arguments for the constructor
         args = []
         decorators = function.decorators
@@ -186,7 +187,7 @@ def _wrap_function(function, casc_function_type):
         fw = casc_function_type(*args)
         function = decorators['function']
         fw.setConvertInputTuples(decorators['input_conversion'])
-        if decorators['type'] in set(['map', 'reduce']):
+        if decorators['type'] in set(['map', 'reduce', 'auto']):
             fw.setOutputMethod(decorators['output_method'])
             fw.setOutputType(decorators['output_type'])
             fw.setFlowProcessPassIn(decorators['flow_process_pass_in'])
@@ -439,8 +440,8 @@ class _Each(Operation):
             (self.__argument_selector, self.__function,
              self.__output_selector) = args
         else:
-            raise Exception
-        ('The number of parameters to Apply/Filter should be between 1 and 3')
+            raise Exception('The number of parameters to Apply/Filter ' \
+                            'should be between 1 and 3')
         # This is the Cascading Function type
         self.__function = _wrap_function(self.__function, function_type)
 

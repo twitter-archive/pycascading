@@ -37,6 +37,8 @@ def setup_paths(module_paths):
                      jython_dir + '/python/Lib'))
     sys.path.extend(module_paths[1 : ])
 
+    print '****** path:', sys.path
+
     # Allow importing of user-installed Jython packages
     # Thanks to Simon Radford
     import site

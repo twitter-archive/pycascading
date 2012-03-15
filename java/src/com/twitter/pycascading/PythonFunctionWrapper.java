@@ -94,6 +94,7 @@ public class PythonFunctionWrapper implements Serializable {
   }
 
   private void writeObject(ObjectOutputStream stream) throws IOException {
+    System.out.println("******* calling writefunc " + funcName);
     stream.writeObject(funcName);
     stream.writeObject(funcSource);
     stream.writeObject(sourceFile);
@@ -105,9 +106,11 @@ public class PythonFunctionWrapper implements Serializable {
     funcSource = (String) stream.readObject();
     sourceFile = (PyString) stream.readObject();
     runningMode = (RunningMode) stream.readObject();
+    System.out.println("******* calling readfunc " + funcName);
   }
 
-  public void prepare(JobConf conf) {
+  public void prepare(JobConf conf, PythonEnvironment pythonEnvironment) {
+    System.out.println("******* calling prepare " + funcName);
     String pycascadingDir = null;
     String sourceDir = null;
     String[] modulePaths = null;

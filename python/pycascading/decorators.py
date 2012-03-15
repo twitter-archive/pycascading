@@ -53,17 +53,19 @@ flowprocess_expected
 
 __author__ = 'Gabor Szabo'
 
+import inspect
 
 from pycascading.pipe import DecoratedFunction
 from com.twitter.pycascading import CascadingBaseOperationWrapper
 from com.twitter.pycascading import CascadingRecordProducerWrapper
 
 
-def _function_decorator(additional_parameters):
+def _function_decorator(*args, **kwargs):#additional_parameters):
     """
     A decorator to recursively decorate a function with arbitrary attributes.
     """
     def fun_decorator(function_or_callabledict):
+        print '*** got:', function_or_callabledict
         if isinstance(function_or_callabledict, DecoratedFunction):
             # Another decorator is next
             dff = function_or_callabledict
@@ -73,7 +75,18 @@ def _function_decorator(additional_parameters):
         # Add the attributes to the decorated function
         dff.decorators.update(additional_parameters)
         return dff
-    return fun_decorator
+    additional_parameters = kwargs
+    if len(args) == 1 and inspect.isroutine(args[0]):
+        # We used the decorator without ()s, the first argument is the
+        # function. We cannot use additional parameters in this case.
+        return fun_decorator(args[0])
+    else:
+        return fun_decorator
+
+#    if function == None:
+#        return fun_decorator
+#    else:
+#        return fun_decorator(function)
 
 
 def numargs_expected(num):
@@ -123,7 +136,7 @@ def collects_output():
     CascadingRecordProducerWrapper.OutputMethod.COLLECTS })
 
 
-def yields():
+def yields(*args, **kwargs):
     """
     The function is a generator that 'yield's output tuples, in the pythonic
     sense.
@@ -136,8 +149,10 @@ def yields():
     We can safely yield Nones or not yield anything at all; no output tuples
     will be emitted in this case.  
     """
-    return _function_decorator({ 'output_method' : \
-    CascadingRecordProducerWrapper.OutputMethod.YIELDS })
+    params = dict(kwargs)
+    params.update({ 'output_method' : \
+                   CascadingRecordProducerWrapper.OutputMethod.YIELDS })
+    return _function_decorator(*args, **params)
 
 
 def produces_python_list():
@@ -161,6 +176,7 @@ def produces_tuples():
 
 
 def flowprocess_expected():
+    # TODO: just set a Python variable for this like for jobconf
     """Pass in the flowProcess variable to the Python function.
 
     Cascading supplies a FlowProcess variable to every custom function call.
@@ -170,7 +186,7 @@ def flowprocess_expected():
     CascadingRecordProducerWrapper.FlowProcessPassIn.YES })
 
 
-def filter():
+def filter(*args, **kwargs):
     """This makes the function a filter.
 
     The function should return 'true' for each input tuple that should stay
@@ -181,10 +197,12 @@ def filter():
     Note that the same effect can be attained by a map that returns the tuple
     itself or None if it should be filtered out.
     """
-    return _function_decorator({ 'type' : 'filter' })
+    params = dict(kwargs)
+    params.update({ 'type' : 'filter' })
+    return _function_decorator(*args, **params)
 
 
-def map(produces=None):
+def map(*args, **kwargs):
     """The function decorated with this emits output tuples for each input one.
 
     The function is called for all the tuples in the input stream as happens
@@ -208,10 +226,12 @@ def map(produces=None):
     Arguments:
     produces -- a list of output field names
     """
-    return _function_decorator({ 'type' : 'map', 'produces' : produces })
+    params = dict(kwargs)
+    params.update({ 'type' : 'map' })
+    return _function_decorator(*args, **params)
 
 
-def reduce(produces=None):
+def reduce(*args, **kwargs):
     """The function decorated with reduce takes a group and emits aggregates.
 
     A reduce function must follow a Cascading Every operation, which comes
@@ -233,4 +253,18 @@ def reduce(produces=None):
 
     See http://groups.google.com/group/cascading-user/browse_thread/thread/f5e5f56f6500ed53/f55fdd6bba399dcf?lnk=gst&q=scope#f55fdd6bba399dcf
     """
-    return _function_decorator({ 'type' : 'reduce', 'produces' : produces })
+    params = dict(kwargs)
+    params.update({ 'type' : 'reduce' })
+    return _function_decorator(*args, **params)
+
+
+def udf(*args, **kwargs):
+    print '*** args:', args, kwargs
+    params = dict(kwargs)
+    return _function_decorator(*args, **params)
+    produces = None
+    if len(args) == 1 and inspect.isroutine(args[0]):
+        # We used the decorator without ()s, the first argument is the function
+        return _function_decorator({ 'type' : 'auto' }, function=args[0])
+    else:
+        return _function_decorator({ 'type' : 'auto', 'produces' : produces })
