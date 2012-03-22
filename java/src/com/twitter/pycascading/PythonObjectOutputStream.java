@@ -8,6 +8,7 @@ import org.python.core.Py;
 import org.python.core.PyFunction;
 import org.python.core.PyObject;
 import org.python.core.PySystemState;
+import org.python.util.PythonInterpreter;
 
 public class PythonObjectOutputStream extends ObjectOutputStream {
 
@@ -35,9 +36,16 @@ public class PythonObjectOutputStream extends ObjectOutputStream {
   protected Object replaceObject(Object obj) throws IOException {
     System.out.println("*** replace " + obj + " " + obj.getClass());
     if (obj instanceof PyFunction) {
+      PyFunction func = (PyFunction) obj;
       System.out.println("*** NO REPLACE " + obj + " " + obj.getClass());
       // System.out.println("*** eval: " + Py.getSystemState());
-      System.out.println("*** INT: " + Main.getInterpreter());
+      PythonInterpreter interpreter = Main.getInterpreter();
+      System.out.println("*** INT: " + interpreter);
+      System.out.println("*** _python_function_to_java: " + func.func_code);
+      // System.out.println("*** 1 "
+      // +
+      // interpreter.getSystemState().__getitem__(Py.newString("random_pipe_name")));
+      interpreter.exec("print 'hi', " + func.func_code);
       return "ok";
     } else
       return super.replaceObject(obj);

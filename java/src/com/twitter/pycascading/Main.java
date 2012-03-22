@@ -15,7 +15,6 @@ public class Main {
     props.put("python.cachedir.skip", "0");
     PythonInterpreter.initialize(System.getProperties(), props, args);
     interpreter = new PythonInterpreter();
-    System.out.println("****** int: " + interpreter);
     interpreter.execfile(args[0]);
   }
 
