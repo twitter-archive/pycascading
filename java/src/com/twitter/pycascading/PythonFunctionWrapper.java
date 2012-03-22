@@ -109,7 +109,7 @@ public class PythonFunctionWrapper implements Serializable {
     System.out.println("******* calling readfunc " + funcName);
   }
 
-  public void prepare(JobConf conf, PythonEnvironment pythonEnvironment) {
+  public void prepare(JobConf conf) {
     System.out.println("******* calling prepare " + funcName);
     String pycascadingDir = null;
     String sourceDir = null;

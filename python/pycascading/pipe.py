@@ -198,6 +198,7 @@ def _wrap_function(function, casc_function_type):
         fw = casc_function_type()
     wrapped_func = _python_function_to_java(function)
     fw.setFunction(wrapped_func)
+    fw.setFunction2(function)
     return fw
 
 

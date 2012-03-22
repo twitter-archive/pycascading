@@ -23,6 +23,7 @@ import java.util.Iterator;
 
 import org.python.core.Py;
 import org.python.core.PyDictionary;
+import org.python.core.PyFunction;
 import org.python.core.PyIterator;
 import org.python.core.PyList;
 import org.python.core.PyObject;
@@ -53,6 +54,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   }
 
   private PythonFunctionWrapper function;
+  private PyFunction function2;
   private PythonEnvironment pythonEnvironment;
   private ConvertInputTuples convertInputTuples;
 
@@ -106,31 +108,38 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
 
   @Override
   public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
-    pythonEnvironment = new PythonEnvironment();
-    function.prepare(((HadoopFlowProcess) flowProcess).getJobConf(), pythonEnvironment);
+    System.out.println("******* baseopprepare");
+    // pythonEnvironment = new PythonEnvironment();
+    function.prepare(((HadoopFlowProcess) flowProcess).getJobConf());
   }
 
   private void writeObject(ObjectOutputStream stream) throws IOException {
-    // PythonObjectOutputStream pythonStream = new
-    // PythonObjectOutputStream(stream);
-    stream.writeObject(function);
-    stream.writeObject(convertInputTuples);
-    stream.writeObject(new Boolean(contextArgs != null));
+    System.out.println("*** CascadingBaseOperationWrapper writeObject");
+    PythonObjectOutputStream pythonStream = new PythonObjectOutputStream(stream);
+    pythonStream.writeObject(function);
+    pythonStream.writeObject(function2);
+    pythonStream.writeObject(convertInputTuples);
+    pythonStream.writeObject(new Boolean(contextArgs != null));
     if (contextArgs != null)
-      stream.writeObject(contextArgs);
-    stream.writeObject(new Boolean(contextKwArgs != null));
+      pythonStream.writeObject(contextArgs);
+    pythonStream.writeObject(new Boolean(contextKwArgs != null));
     if (contextKwArgs != null)
-      stream.writeObject(contextKwArgs);
+      pythonStream.writeObject(contextKwArgs);
   }
 
   private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException,
           URISyntaxException {
-    function = (PythonFunctionWrapper) stream.readObject();
-    convertInputTuples = (ConvertInputTuples) stream.readObject();
-    if ((Boolean) stream.readObject())
-      contextArgs = (PyTuple) stream.readObject();
-    if ((Boolean) stream.readObject())
-      contextKwArgs = (PyDictionary) stream.readObject();
+    // TODO: we need to start up the interpreter and for all the imports, as
+    // the parameters may use other imports, like datetime. Or how else can
+    // we do this better?
+    PythonObjectInputStream pythonStream = new PythonObjectInputStream(stream);
+    function = (PythonFunctionWrapper) pythonStream.readObject();
+    function2 = (PyFunction) pythonStream.readObject();
+    convertInputTuples = (ConvertInputTuples) pythonStream.readObject();
+    if ((Boolean) pythonStream.readObject())
+      contextArgs = (PyTuple) pythonStream.readObject();
+    if ((Boolean) pythonStream.readObject())
+      contextKwArgs = (PyDictionary) pythonStream.readObject();
   }
 
   /**
@@ -242,6 +251,10 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
 
   public void setFunction(PythonFunctionWrapper function) {
     this.function = function;
+  }
+
+  public void setFunction2(PyFunction function2) {
+    this.function2 = function2;
   }
 
   public void setConvertInputTuples(ConvertInputTuples convertInputTuples) {
