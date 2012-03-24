@@ -74,7 +74,7 @@ public class PythonFunctionWrapper implements Serializable {
   }
 
   private PyObject pythonFunction;
-  String funcSource;
+  private String funcSource;
   private PyString funcName, sourceFile;
   private RunningMode runningMode;
 
@@ -137,7 +137,10 @@ public class PythonFunctionWrapper implements Serializable {
     interpreter.set("module_name", "m");
     interpreter.set("file_name", sourceDir + sourceFile);
     interpreter.set("module_paths", modulePaths);
+    // We set the Python variable "map_input_file" to the path to the mapper
+    // input file
     interpreter.set("map_input_file", conf.get("map.input.file"));
+    // We set the Python variable "jobconf" to the MR jobconf
     interpreter.set("jobconf", conf);
     interpreter.eval("setup_paths(module_paths)");
     // PyObject module = (PyObject) interpreter

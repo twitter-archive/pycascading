@@ -57,6 +57,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   private PyFunction function2;
   private PythonEnvironment pythonEnvironment;
   private ConvertInputTuples convertInputTuples;
+  private PyFunction writeObjectCallBack;
 
   private PyTuple contextArgs = null;
   protected PyDictionary contextKwArgs = null;
@@ -115,9 +116,12 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
 
   private void writeObject(ObjectOutputStream stream) throws IOException {
     System.out.println("*** CascadingBaseOperationWrapper writeObject");
-    PythonObjectOutputStream pythonStream = new PythonObjectOutputStream(stream);
-    pythonStream.writeObject(function);
+    PythonObjectOutputStream pythonStream = new PythonObjectOutputStream(stream,
+            writeObjectCallBack);
+    // pythonStream.writeObject(function);
+    System.out.println("1");
     pythonStream.writeObject(function2);
+    System.out.println("2");
     pythonStream.writeObject(convertInputTuples);
     pythonStream.writeObject(new Boolean(contextArgs != null));
     if (contextArgs != null)
@@ -132,8 +136,9 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     // TODO: we need to start up the interpreter and for all the imports, as
     // the parameters may use other imports, like datetime. Or how else can
     // we do this better?
-    PythonObjectInputStream pythonStream = new PythonObjectInputStream(stream);
-    function = (PythonFunctionWrapper) pythonStream.readObject();
+    StringBuilder sources = new StringBuilder();
+    PythonObjectInputStream pythonStream = new PythonObjectInputStream(stream, sources);
+    // function = (PythonFunctionWrapper) pythonStream.readObject();
     function2 = (PyFunction) pythonStream.readObject();
     convertInputTuples = (ConvertInputTuples) pythonStream.readObject();
     if ((Boolean) pythonStream.readObject())
@@ -161,11 +166,12 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
    * @return the original argument to the UDF before serialization
    */
   private PyObject getOriginalArg(PyObject arg) {
-    Object result = arg.__tojava__(PythonFunctionWrapper.class);
-    if (result == Py.NoConversion)
-      return arg;
-    else
-      return ((PythonFunctionWrapper) result).getPythonFunction();
+    return arg;
+    // Object result = arg.__tojava__(PythonFunctionWrapper.class);
+    // if (result == Py.NoConversion)
+    // return arg;
+    // else
+    // return ((PythonFunctionWrapper) result).getPythonFunction();
   }
 
   /**
@@ -269,5 +275,9 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   public void setContextKwArgs(PyDictionary kwargs) {
     contextKwArgs = kwargs;
     setupArgs();
+  }
+
+  public void setWriteObjectCallBack(PyFunction callBack) {
+    this.writeObjectCallBack = callBack;
   }
 }

@@ -6,7 +6,7 @@ import org.python.util.PythonInterpreter;
 
 public class Main {
 
-  private static PythonInterpreter interpreter;
+  private static PythonInterpreter interpreter = null;
 
   public static void main(String[] args) throws Exception {
     Properties sysProps = System.getProperties();
@@ -14,11 +14,12 @@ public class Main {
     props.put("python.cachedir", sysProps.get("user.home") + "/.jython-cache");
     props.put("python.cachedir.skip", "0");
     PythonInterpreter.initialize(System.getProperties(), props, args);
-    interpreter = new PythonInterpreter();
-    interpreter.execfile(args[0]);
+    getInterpreter().execfile(args[0]);
   }
 
   public static PythonInterpreter getInterpreter() {
+    if (interpreter == null)
+      interpreter = new PythonInterpreter();
     return interpreter;
   }
 }

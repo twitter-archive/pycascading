@@ -48,8 +48,24 @@ CascadingFilterWrapper, CascadingAggregatorWrapper, CascadingBufferWrapper, \
 PythonFunctionWrapper, CascadingBaseOperationWrapper, \
 CascadingRecordProducerWrapper
 
+import serializers
+
+from java.io import ObjectOutputStream
+
 
 import java.lang.Integer
+
+
+class PythonObjectOutputStream2(ObjectOutputStream):
+    def __init__(self, out):
+        print '***** pipe POOS2 init', out
+        super(PythonObjectOutputStream2).__init__(out)
+        self.out_stream = out
+        super(PythonObjectOutputStream2).enableReplaceObject(True)
+
+    def replaceObject(self, obj):
+        print '***** pipe POOS2 replace', obj
+        return super(PythonObjectOutputStream2).replaceObject(obj)
 
 
 def coerce_to_fields(obj):
@@ -159,6 +175,49 @@ def _python_function_to_java(function):
     return wrapped_func
 
 
+def _function_source(func):
+    def remove_indents(code):
+        """Remove leading indents from the function's source code.
+
+        Otherwise an exec later when running the function would complain about
+        the indents.
+        """
+        i = 0
+        indent = 0
+        blanks = -1
+        result = ''
+        while i < len(code):
+            if blanks < 0:
+                if code[i] == ' ':
+                    indent += 1
+                elif code[i] == '\t':
+                    indent += 8
+                else:
+                    result = code[i]
+                    blanks = indent
+            else:
+                if blanks >= indent:
+                    # This is to substitute indenting tabs if necessary
+                    result += ' ' * (blanks - indent) + code[i]
+                    blanks = indent
+                else:
+                    if code[i] == ' ':
+                        blanks += 1
+                    elif code[i] == '\t':
+                        blanks += 8
+                    else:
+                        # This happens when in one line we have less indent
+                        # than in the first, but this should have been caught by
+                        # the compiler, so we shouldn't get here ever.
+                        raise Exception('Indents mismatch')
+                if code[i] == '\n':
+                    blanks = 0
+            i += 1
+        return result
+
+    return remove_indents(inspect.getsource(func))
+
+
 def _wrap_function(function, casc_function_type):
     """Wrap a Python function into a Serializable and callable Java object.
     This wrapping is necessary as Cascading serializes the job pipeline before
@@ -199,6 +258,7 @@ def _wrap_function(function, casc_function_type):
     wrapped_func = _python_function_to_java(function)
     fw.setFunction(wrapped_func)
     fw.setFunction2(function)
+    fw.setWriteObjectCallBack(serializers.replace_object)
     return fw
 
 

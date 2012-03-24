@@ -77,9 +77,9 @@ public class Util {
     System.setProperty("pycascading.root", root);
   }
 
-  public static void run(String runningMode, int numReducers, Map<String, Object> config,
-          Map<String, Tap> sources, Map<String, Tap> sinks, Pipe... tails) throws IOException,
-          URISyntaxException {
+  public static void run(String runningMode, FlowHead flowHead, int numReducers,
+          Map<String, Object> config, Map<String, Tap> sources, Map<String, Tap> sinks,
+          Pipe... tails) throws IOException, URISyntaxException {
     // String strClassPath = System.getProperty("java.class.path");
     // System.out.println("Classpath is " + strClassPath);
 
@@ -105,15 +105,21 @@ public class Util {
     Configuration conf = new Configuration();
     TemporaryHdfs tempDir = new TemporaryHdfs();
     if ("hadoop".equals(runningMode)) {
-      tempDir = new TemporaryHdfs();
-      tempDir.createTmpFolder(conf);
-      Object archives = config.get("distributed_cache.archives");
+      // We put the files to be distributed into the distributed cache
+      // The pycascading.distributed_cache.archives variable was set by
+      // bootstrap.py, based on the command line parameters where we specified
+      // the PyCascading & source archives
+      Object archives = config.get("pycascading.distributed_cache.archives");
       if (archives != null) {
+        tempDir = new TemporaryHdfs();
+        String tempDirLocation = tempDir.createTmpFolder(conf);
         String dests = null;
         for (String archive : (Iterable<String>) archives) {
-          String dest = tempDir.copyFromLocalFile(archive);
+          String dest = tempDir.copyFromLocalFileToHDFS(archive);
           dests = (dests == null ? dest : dests + "," + dest);
         }
+        // Set the distributed cache to the files we just copied to HDFS
+        //
         // This is an ugly hack, we should use DistributedCache.
         // DistributedCache however operates on a JobConf, and since
         // Cascading expects a Map, we cannot directly pass
@@ -121,6 +127,9 @@ public class Util {
         // TODO: see if a later version of Cascading can update its properties
         // using a JobConf
         properties.setProperty("mapred.cache.archives", dests);
+        // This creates a symlink for each of the mappers/reducers to the
+        // localized files, instead of copying them for each one. This way we
+        // reduce the overhead for copying on one worker machine.
         // TODO: see the one just above
         properties.setProperty("mapred.create.symlink", "yes");
       }

@@ -22,6 +22,15 @@ and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop.
 from pycascading.helpers import *
 from pycascading.operators import *
 
+import com.twitter.pycascading.FlowHead
+
+class FlowHead(Operation):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def _create_with_parent(self, parent):
+        return com.twitter.pycascading.FlowHead('noop-name', parent.get_assembly())
+
 
 def fun():
     print '*** OK!!'
@@ -50,6 +59,6 @@ def main():
             c += 1
         yield [c]
 
-    input | Map('line', split_words(0, fun), 'word') | GroupBy('word') | count | output
+    input | FlowHead() | Map('line', split_words(0, fun), 'word') | GroupBy('word') | count | output
 
     flow.run(num_reducers=2)

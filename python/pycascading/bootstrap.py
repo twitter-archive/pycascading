@@ -63,7 +63,8 @@ if __name__ == "__main__":
     pycascading.pipe.config['distributed_cache.archives'] = []
     for opt in opts:
         if opt[0] == '-a':
-            pycascading.pipe.config['distributed_cache.archives'].append(opt[1])
+            pycascading.pipe.config['pycascading.distributed_cache.archives'] \
+            .append(opt[1])
 
     # Haha... it's necessary to put this here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,

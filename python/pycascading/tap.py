@@ -36,6 +36,8 @@ from cascading.tuple import Fields
 from org.apache.hadoop.fs import Path
 from org.apache.hadoop.conf import Configuration
 
+from pipe import random_pipe_name, Operation
+
 
 def expand_path_with_home(output_folder):
     """Prepend the home folder to a relative location on HDFS if necessary.
@@ -55,6 +57,15 @@ def expand_path_with_home(output_folder):
             home_folder = fs.getHomeDirectory().toString()
             return home_folder + '/' + output_folder
     return output_folder
+
+
+class _FlowHead(Operation):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def _create_with_parent(self, parent):
+        return com.twitter.pycascading.FlowHead(random_pipe_name('fhead'), \
+                                                parent.get_assembly())
 
 
 class Flow(object):
