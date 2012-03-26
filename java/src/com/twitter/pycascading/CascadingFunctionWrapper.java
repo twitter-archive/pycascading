@@ -79,6 +79,7 @@ public class CascadingFunctionWrapper extends CascadingRecordProducerWrapper imp
         callArgs[2] = Py.java2py(flowProcess);
       callFunction();
     } else {
+      // TODO: remove this and make flowprocess a python variable
       // The Python function yields or returns records
       if (flowProcessPassIn == FlowProcessPassIn.YES)
         callArgs[1] = Py.java2py(flowProcess);

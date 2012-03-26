@@ -74,8 +74,8 @@ public class PythonFunctionWrapper implements Serializable {
   }
 
   private PyObject pythonFunction;
-  private String funcSource;
-  private PyString funcName, sourceFile;
+  public String funcSource;
+  public PyString funcName, sourceFile;
   private RunningMode runningMode;
 
   private PythonInterpreter interpreter;

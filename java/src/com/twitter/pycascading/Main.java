@@ -18,8 +18,10 @@ public class Main {
   }
 
   public static PythonInterpreter getInterpreter() {
-    if (interpreter == null)
+    if (interpreter == null) {
+      System.out.println("###### starting new int");
       interpreter = new PythonInterpreter();
+    }
     return interpreter;
   }
 }

@@ -14,6 +14,8 @@
  */
 package com.twitter.pycascading;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -21,6 +23,9 @@ import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.Iterator;
 
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.JobConf;
 import org.python.core.Py;
 import org.python.core.PyDictionary;
 import org.python.core.PyFunction;
@@ -29,6 +34,9 @@ import org.python.core.PyList;
 import org.python.core.PyObject;
 import org.python.core.PyString;
 import org.python.core.PyTuple;
+import org.python.util.PythonInterpreter;
+
+import com.twitter.pycascading.PythonFunctionWrapper.RunningMode;
 
 import cascading.flow.FlowProcess;
 import cascading.flow.hadoop.HadoopFlowProcess;
@@ -54,10 +62,10 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   }
 
   private PythonFunctionWrapper function;
-  private PyFunction function2;
-  private PythonEnvironment pythonEnvironment;
+  private PyObject function2;
   private ConvertInputTuples convertInputTuples;
   private PyFunction writeObjectCallBack;
+  private byte[] serializedFunction;
 
   private PyTuple contextArgs = null;
   protected PyDictionary contextKwArgs = null;
@@ -107,17 +115,106 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     super(numArgs, fieldDeclaration);
   }
 
+  private void setupInterpreter(JobConf jobConf) {
+    System.out.println("******* calling setupInt");
+    String pycascadingDir = null;
+    String sourceDir = null;
+    String[] modulePaths = null;
+    if ("hadoop".equals(jobConf.get("pycascading.running_mode"))) {
+      try {
+        Path[] archives = DistributedCache.getLocalCacheArchives(jobConf);
+        pycascadingDir = archives[0].toString() + "/";
+        sourceDir = archives[1].toString() + "/";
+        modulePaths = new String[archives.length];
+        int i = 0;
+        for (Path archive : archives) {
+          modulePaths[i++] = archive.toString();
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    } else {
+      pycascadingDir = System.getProperty("pycascading.root") + "/";
+      sourceDir = "";
+      modulePaths = new String[] { pycascadingDir, sourceDir };
+    }
+    PythonInterpreter interpreter = Main.getInterpreter();
+    interpreter.execfile(pycascadingDir + "python/pycascading/init_module.py");
+    interpreter.set("module_name", "m");
+    interpreter.set("file_name", sourceDir + (String) jobConf.get("pycascading.main_file"));
+    interpreter.set("module_paths", modulePaths);
+
+    // We set the Python variable "map_input_file" to the path to the mapper
+    // input file
+    interpreter.set("map_input_file", jobConf.get("map.input.file"));
+
+    // We set the Python variable "jobconf" to the MR jobconf
+    interpreter.set("jobconf", jobConf);
+
+    interpreter.eval("setup_paths(module_paths)");
+    // PyObject module = (PyObject) interpreter
+    // .eval("load_source(module_name, file_name, module_paths)");
+    // We need to do this so that nested functions can also be used
+    interpreter.execfile(sourceDir + (String) jobConf.get("pycascading.main_file"));
+    // interpreter.exec(funcSource);
+    // pythonFunction = module.__getattr__(funcName);
+  }
+
   @Override
   public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
     System.out.println("******* baseopprepare");
     // pythonEnvironment = new PythonEnvironment();
-    function.prepare(((HadoopFlowProcess) flowProcess).getJobConf());
+    // function.prepare(((HadoopFlowProcess) flowProcess).getJobConf());
+    JobConf jobConf = ((HadoopFlowProcess) flowProcess).getJobConf();
+    System.out.println("$$$$$ jobconf: " + jobConf.get("pycascading.running_mode"));
+    setupInterpreter(jobConf);
+
+    ByteArrayInputStream str = new ByteArrayInputStream(serializedFunction);
+    StringBuilder sources = new StringBuilder();
+    try {
+      PythonObjectInputStream pythonStream = new PythonObjectInputStream(str, sources);
+      // // function = (PythonFunctionWrapper) pythonStream.readObject();
+
+      function2 = (PyObject) pythonStream.readObject();
+      convertInputTuples = (ConvertInputTuples) pythonStream.readObject();
+      if ((Boolean) pythonStream.readObject())
+        contextArgs = (PyTuple) pythonStream.readObject();
+      if ((Boolean) pythonStream.readObject())
+        contextKwArgs = (PyDictionary) pythonStream.readObject();
+      str.close();
+      serializedFunction = null;
+      PythonInterpreter interpreter = Main.getInterpreter();
+      // function2 = (PyFunction) interpreter.get(Py.tojava(function.funcName,
+      // String.class));
+      System.out.println("we got: " + function2);
+      if (!PyFunction.class.isInstance(function2)) {
+        // function is assumed to be decorated, resulting in a
+        // DecoratedFunction.
+        // The function was decorated so we need to get the original back
+        // Only for performance reasons. It's just as good to comment this
+        // out, as a DecoratedFunction is callable anyway.
+        // If we were to decorate the functions with other decorators as
+        // well, we certainly cannot use this.
+        try {
+          function2 = (PyFunction) ((PyDictionary) (function2
+                  .__getattr__(new PyString("decorators")))).get(new PyString("function"));
+        } catch (Exception e) {
+          throw new RuntimeException(
+                  "Expected a Python function or a decorated function. This shouldn't happen.");
+        }
+      }
+    } catch (Exception e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    System.out.println("####### contextArgs " + contextArgs);
+    setupArgs();
   }
 
   private void writeObject(ObjectOutputStream stream) throws IOException {
     System.out.println("*** CascadingBaseOperationWrapper writeObject");
-    PythonObjectOutputStream pythonStream = new PythonObjectOutputStream(stream,
-            writeObjectCallBack);
+    ByteArrayOutputStream str = new ByteArrayOutputStream();
+    PythonObjectOutputStream pythonStream = new PythonObjectOutputStream(str, writeObjectCallBack);
     // pythonStream.writeObject(function);
     System.out.println("1");
     pythonStream.writeObject(function2);
@@ -129,6 +226,8 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     pythonStream.writeObject(new Boolean(contextKwArgs != null));
     if (contextKwArgs != null)
       pythonStream.writeObject(contextKwArgs);
+    pythonStream.close();
+    stream.writeObject(str.toByteArray());
   }
 
   private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException,
@@ -136,15 +235,18 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     // TODO: we need to start up the interpreter and for all the imports, as
     // the parameters may use other imports, like datetime. Or how else can
     // we do this better?
-    StringBuilder sources = new StringBuilder();
-    PythonObjectInputStream pythonStream = new PythonObjectInputStream(stream, sources);
-    // function = (PythonFunctionWrapper) pythonStream.readObject();
-    function2 = (PyFunction) pythonStream.readObject();
-    convertInputTuples = (ConvertInputTuples) pythonStream.readObject();
-    if ((Boolean) pythonStream.readObject())
-      contextArgs = (PyTuple) pythonStream.readObject();
-    if ((Boolean) pythonStream.readObject())
-      contextKwArgs = (PyDictionary) pythonStream.readObject();
+    serializedFunction = (byte[]) stream.readObject();
+    // ByteArrayInputStream str = new ByteArrayInputStream(arr);
+    // PythonObjectInputStream pythonStream = new PythonObjectInputStream(str,
+    // sources);
+    // // function = (PythonFunctionWrapper) pythonStream.readObject();
+    // function2 = (PyFunction) pythonStream.readObject();
+    // convertInputTuples = (ConvertInputTuples) pythonStream.readObject();
+    // if ((Boolean) pythonStream.readObject())
+    // contextArgs = (PyTuple) pythonStream.readObject();
+    // if ((Boolean) pythonStream.readObject())
+    // contextKwArgs = (PyDictionary) pythonStream.readObject();
+    // str.close();
   }
 
   /**
@@ -182,6 +284,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     int numArgs = getNumParameters();
     callArgs = new PyObject[numArgs + (contextArgs == null ? 0 : contextArgs.size())
             + (contextKwArgs == null ? 0 : contextKwArgs.size())];
+    System.out.println("&&&&&&& numargs " + numArgs + "/" + callArgs.length + "/" + contextArgs);
     int i = numArgs;
     if (contextArgs != null) {
       PyObject[] args = contextArgs.getArray();
@@ -252,7 +355,11 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
    * @return the return value of the Python function
    */
   public PyObject callFunction() {
-    return function.callFunction(callArgs, contextKwArgsNames);
+    if (contextKwArgsNames == null)
+      return function2.__call__(callArgs);
+    else
+      return function2.__call__(callArgs, contextKwArgsNames);
+    // return function.callFunction(callArgs, contextKwArgsNames);
   }
 
   public void setFunction(PythonFunctionWrapper function) {

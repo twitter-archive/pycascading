@@ -168,7 +168,7 @@ def _python_function_to_java(function):
     source = remove_indents(inspect.getsource(function))
     function_name = function.func_name
     wrapped_func = PythonFunctionWrapper(function, source)
-    if config['running.mode'] == 'local':
+    if config['pycascading.running_mode'] == 'local':
         wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)
     else:
         wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.HADOOP)

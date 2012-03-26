@@ -77,9 +77,8 @@ public class Util {
     System.setProperty("pycascading.root", root);
   }
 
-  public static void run(String runningMode, FlowHead flowHead, int numReducers,
-          Map<String, Object> config, Map<String, Tap> sources, Map<String, Tap> sinks,
-          Pipe... tails) throws IOException, URISyntaxException {
+  public static void run(int numReducers, Map<String, Object> config, Map<String, Tap> sources,
+          Map<String, Tap> sinks, Pipe... tails) throws IOException, URISyntaxException {
     // String strClassPath = System.getProperty("java.class.path");
     // System.out.println("Classpath is " + strClassPath);
 
@@ -102,9 +101,16 @@ public class Util {
     properties.put("mapred.jobtracker.completeuserjobs.maximum", 50000);
     properties.put("mapred.input.dir.recursive", "true");
 
+    // Set the running mode in the jobconf so that the mappers/reducers can
+    // easily check this.
+    String runningMode = (String) config.get("pycascading.running_mode");
+    properties.setProperty("pycascading.running_mode", runningMode);
+    properties.setProperty("pycascading.main_file", (String) config.get("pycascading.main_file"));
+
     Configuration conf = new Configuration();
-    TemporaryHdfs tempDir = new TemporaryHdfs();
+    TemporaryHdfs tempDir = null;
     if ("hadoop".equals(runningMode)) {
+      tempDir = new TemporaryHdfs();
       // We put the files to be distributed into the distributed cache
       // The pycascading.distributed_cache.archives variable was set by
       // bootstrap.py, based on the command line parameters where we specified
@@ -140,7 +146,7 @@ public class Util {
     Flow flow = flowConnector.connect(sources, sinks, tails);
     if ("hadoop".equals(runningMode)) {
       try {
-        flow.addListener(tempDir);
+        // flow.addListener(tempDir);
       } catch (Exception e) {
         e.printStackTrace();
       }

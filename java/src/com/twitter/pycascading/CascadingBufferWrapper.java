@@ -37,7 +37,7 @@ import cascading.tuple.TupleEntryCollector;
 public class CascadingBufferWrapper extends CascadingRecordProducerWrapper implements Buffer,
         Serializable {
   private static final long serialVersionUID = -3512295576396796360L;
-  
+
   public CascadingBufferWrapper() {
     super();
   }

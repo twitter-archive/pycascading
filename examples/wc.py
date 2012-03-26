@@ -43,7 +43,7 @@ def main():
     @map(produces=['word'])
     @yields
     def split_words(tuple, field, fun):
-        #print '&&&& fun', field, fun
+        print '&&&& fun', field, fun, fun()
         for word in tuple.get(field).split():
             yield [word]
 
@@ -59,6 +59,6 @@ def main():
             c += 1
         yield [c]
 
-    input | FlowHead() | Map('line', split_words(0, fun), 'word') | GroupBy('word') | count | output
+    input | Map('line', split_words(0, fun), 'word') | GroupBy('word') | count | output
 
     flow.run(num_reducers=2)

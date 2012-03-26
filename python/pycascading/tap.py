@@ -50,7 +50,7 @@ def expand_path_with_home(output_folder):
     output_folder -- the absolute or relative path of the output HDFS folder
     """
     import pycascading.pipe
-    if pycascading.pipe.config['running.mode'] == 'hadoop':
+    if pycascading.pipe.config['pycascading.running_mode'] == 'hadoop':
         if not any(map(lambda scheme: output_folder.startswith(scheme), \
                        ['hdfs:', 'file:', 's3:', 's3n:', '/'])):
             fs = Path('/').getFileSystem(Configuration())
@@ -210,8 +210,8 @@ class Flow(object):
                 source_map[source] = self.source_map[source]
         tails = [t.get_assembly() for t in self.tails]
         import pycascading.pipe
-        Util.run(pycascading.pipe.config['running.mode'], num_reducers,
-                 pycascading.pipe.config, source_map, self.sink_map, tails)
+        Util.run(num_reducers, pycascading.pipe.config, source_map, \
+                 self.sink_map, tails)
 
 
 class _Sink(Chainable):

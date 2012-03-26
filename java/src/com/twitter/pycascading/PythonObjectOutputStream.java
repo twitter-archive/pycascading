@@ -41,16 +41,19 @@ public class PythonObjectOutputStream extends ObjectOutputStream {
 
   @Override
   protected Object replaceObject(Object obj) throws IOException {
-    // System.out.println("*** replace " + obj + " " + obj.getClass());
+    // System.out.println("*** replace " + obj + "/" + obj.getClass());
     if (obj instanceof PyObject) {
-      Object replaced = callBack.__call__((PyObject) obj);
+      PyObject replaced = callBack.__call__((PyObject) obj);
       if (!(replaced instanceof PyNone)) {
-        System.out.println("*** replaced " + replaced + " " + replaced.getClass());
-        return replaced;
+        System.out.println("######## replaced " + obj + "/" + obj.getClass() + "->" + replaced
+                + " " + replaced.getClass());
+        // outStream.writeObject(replaced);
+        return Py.tojava(replaced, PythonFunctionWrapper.class);
       }
     } else if (obj instanceof Each) {
       System.out.println("******* PIPE FOUND " + obj);
     }
+    // outStream.writeObject(obj);
     return obj;
     //
     // String function_source_code = Py.tojava(callBack.__call__(func),
@@ -76,6 +79,7 @@ public class PythonObjectOutputStream extends ObjectOutputStream {
     // } else
     // return super.replaceObject(obj);
   }
+
   // @Override
   // protected void writeObjectOverride(Object object) throws IOException {
   // super.writeObjectOverride(object);
