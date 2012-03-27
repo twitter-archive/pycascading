@@ -256,8 +256,8 @@ def _wrap_function(function, casc_function_type):
         # When function is a pure Python function, declared without decorators
         fw = casc_function_type()
     wrapped_func = _python_function_to_java(function)
-    fw.setFunction(wrapped_func)
-    fw.setFunction2(function)
+#    fw.setFunction(wrapped_func)
+    fw.setFunction(function)
     fw.setWriteObjectCallBack(serializers.replace_object)
     return fw
 
@@ -440,7 +440,8 @@ class DecoratedFunction(Operation):
         args_out = []
         for arg in args:
             if type(arg) == types.FunctionType:
-                args_out.append(_python_function_to_java(arg))
+#                args_out.append(_python_function_to_java(arg))
+                args_out.append(arg)
             else:
                 args_out.append(arg)
         for key in kwargs:

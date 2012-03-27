@@ -61,8 +61,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     NONE, PYTHON_LIST, PYTHON_DICT
   }
 
-  private PythonFunctionWrapper function;
-  private PyObject function2;
+  private PyObject function;
   private ConvertInputTuples convertInputTuples;
   private PyFunction writeObjectCallBack;
   private byte[] serializedFunction;
@@ -139,10 +138,12 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
       modulePaths = new String[] { pycascadingDir, sourceDir };
     }
     PythonInterpreter interpreter = Main.getInterpreter();
+    System.out.println("######## starting initial pull");
     interpreter.execfile(pycascadingDir + "python/pycascading/init_module.py");
     interpreter.set("module_name", "m");
     interpreter.set("file_name", sourceDir + (String) jobConf.get("pycascading.main_file"));
     interpreter.set("module_paths", modulePaths);
+    interpreter.eval("setup_paths(module_paths)");
 
     // We set the Python variable "map_input_file" to the path to the mapper
     // input file
@@ -151,7 +152,6 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     // We set the Python variable "jobconf" to the MR jobconf
     interpreter.set("jobconf", jobConf);
 
-    interpreter.eval("setup_paths(module_paths)");
     // PyObject module = (PyObject) interpreter
     // .eval("load_source(module_name, file_name, module_paths)");
     // We need to do this so that nested functions can also be used
@@ -175,7 +175,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
       PythonObjectInputStream pythonStream = new PythonObjectInputStream(str, sources);
       // // function = (PythonFunctionWrapper) pythonStream.readObject();
 
-      function2 = (PyObject) pythonStream.readObject();
+      function = (PyObject) pythonStream.readObject();
       convertInputTuples = (ConvertInputTuples) pythonStream.readObject();
       if ((Boolean) pythonStream.readObject())
         contextArgs = (PyTuple) pythonStream.readObject();
@@ -186,8 +186,8 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
       PythonInterpreter interpreter = Main.getInterpreter();
       // function2 = (PyFunction) interpreter.get(Py.tojava(function.funcName,
       // String.class));
-      System.out.println("we got: " + function2);
-      if (!PyFunction.class.isInstance(function2)) {
+      System.out.println("we got: " + function);
+      if (!PyFunction.class.isInstance(function)) {
         // function is assumed to be decorated, resulting in a
         // DecoratedFunction.
         // The function was decorated so we need to get the original back
@@ -196,8 +196,8 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
         // If we were to decorate the functions with other decorators as
         // well, we certainly cannot use this.
         try {
-          function2 = (PyFunction) ((PyDictionary) (function2
-                  .__getattr__(new PyString("decorators")))).get(new PyString("function"));
+          function = (PyFunction) ((PyDictionary) (function.__getattr__(new PyString("decorators"))))
+                  .get(new PyString("function"));
         } catch (Exception e) {
           throw new RuntimeException(
                   "Expected a Python function or a decorated function. This shouldn't happen.");
@@ -217,7 +217,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     PythonObjectOutputStream pythonStream = new PythonObjectOutputStream(str, writeObjectCallBack);
     // pythonStream.writeObject(function);
     System.out.println("1");
-    pythonStream.writeObject(function2);
+    pythonStream.writeObject(function);
     System.out.println("2");
     pythonStream.writeObject(convertInputTuples);
     pythonStream.writeObject(new Boolean(contextArgs != null));
@@ -356,18 +356,14 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
    */
   public PyObject callFunction() {
     if (contextKwArgsNames == null)
-      return function2.__call__(callArgs);
+      return function.__call__(callArgs);
     else
-      return function2.__call__(callArgs, contextKwArgsNames);
+      return function.__call__(callArgs, contextKwArgsNames);
     // return function.callFunction(callArgs, contextKwArgsNames);
   }
 
-  public void setFunction(PythonFunctionWrapper function) {
+  public void setFunction(PyFunction function) {
     this.function = function;
-  }
-
-  public void setFunction2(PyFunction function2) {
-    this.function2 = function2;
   }
 
   public void setConvertInputTuples(ConvertInputTuples convertInputTuples) {

@@ -19,6 +19,8 @@ The data is expected in the pycascading_data/ folder if run in local mode,
 and in the pycascading_data/ folder in the user's HDFS home if run with Hadoop. 
 """
 
+print '@@@@@@ running wc.py'
+
 from pycascading.helpers import *
 from pycascading.operators import *
 
@@ -33,7 +35,7 @@ class FlowHead(Operation):
 
 
 def fun():
-    print '*** OK!!'
+    print '*** OK!!', module_paths, jobconf
 
 def main():
     flow = Flow()
