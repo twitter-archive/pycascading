@@ -146,12 +146,11 @@ public class Util {
     Flow flow = flowConnector.connect(sources, sinks, tails);
     if ("hadoop".equals(runningMode)) {
       try {
-        // flow.addListener(tempDir);
+        flow.addListener(tempDir);
       } catch (Exception e) {
         e.printStackTrace();
       }
     }
-    // execute the flow, block until complete
     flow.complete();
   }
 }

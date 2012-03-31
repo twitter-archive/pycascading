@@ -28,22 +28,23 @@ __author__ = 'Gabor Szabo'
 
 import time, struct, subprocess
 
-
-# Import all important PyCascading modules so we don't have to in the scripts
-from pycascading.decorators import *
-from pycascading.pipe import *
-from pycascading.tap import *
-
-# Import Java basic types for conversions
-from java.lang import Integer, Long, Float, Double, String
-
 # Import frequently used Cascading classes
+# We import these first so that we can override some global names (like Rename)
 from cascading.tuple import Fields, Tuple, TupleEntry
 from cascading.operation.aggregator import *
 from cascading.operation.filter import *
 from cascading.pipe.assembly import *
 from cascading.scheme import *
 from cascading.tap import *
+
+# Import all important PyCascading modules so we don't have to in the scripts
+from pycascading.decorators import *
+from pycascading.pipe import *
+from pycascading.tap import *
+from pycascading.operators import *
+
+# Import Java basic types for conversions
+from java.lang import Integer, Long, Float, Double, String
 
 import com.twitter.pycascading.SelectFields
 from pycascading.pipe import coerce_to_fields

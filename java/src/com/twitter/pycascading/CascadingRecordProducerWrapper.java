@@ -55,14 +55,8 @@ public class CascadingRecordProducerWrapper extends CascadingBaseOperationWrappe
     AUTO, PYTHON_LIST, TUPLE, TUPLEENTRY
   }
 
-  // Pass the FlowProcess to the Python function
-  public enum FlowProcessPassIn {
-    YES, NO
-  }
-
   protected OutputMethod outputMethod;
   protected OutputType outputType;
-  protected FlowProcessPassIn flowProcessPassIn;
 
   public CascadingRecordProducerWrapper() {
     super();
@@ -81,10 +75,7 @@ public class CascadingRecordProducerWrapper extends CascadingBaseOperationWrappe
   }
 
   public int getNumParameters() {
-    int n = (outputMethod == OutputMethod.COLLECTS ? 2 : 1);
-    if (flowProcessPassIn == FlowProcessPassIn.YES)
-      n++;
-    return n;
+    return (outputMethod == OutputMethod.COLLECTS ? 2 : 1);
   }
 
   private void castPythonObject(Object ret, TupleEntryCollector outputCollector,
@@ -167,9 +158,5 @@ public class CascadingRecordProducerWrapper extends CascadingBaseOperationWrappe
 
   public void setOutputType(OutputType outputType) {
     this.outputType = outputType;
-  }
-
-  public void setFlowProcessPassIn(FlowProcessPassIn flowProcessPassIn) {
-    this.flowProcessPassIn = flowProcessPassIn;
   }
 }

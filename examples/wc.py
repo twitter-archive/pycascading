@@ -24,18 +24,23 @@ print '@@@@@@ running wc.py'
 from pycascading.helpers import *
 from pycascading.operators import *
 
-import com.twitter.pycascading.FlowHead
-
-class FlowHead(Operation):
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def _create_with_parent(self, parent):
-        return com.twitter.pycascading.FlowHead('noop-name', parent.get_assembly())
-
-
 def fun():
-    print '*** OK!!', module_paths, jobconf
+    print '*** OK!!', module_paths, jobconf, flow_process
+
+def m():
+    print 'glob func'
+
+class C:
+    def __init__(self):
+        self.x = 1
+
+    @classmethod
+    def f(cls):
+        print 'clsmethod'
+
+    def m(self):
+#        m()
+        print 'ok m', self.x
 
 def main():
     flow = Flow()
@@ -44,8 +49,8 @@ def main():
 
     @map(produces=['word'])
     @yields
-    def split_words(tuple, field, fun):
-        print '&&&& fun', field, fun, fun()
+    def split_words(tuple, field, fun, obj):
+        print '&&&& fun', field, fun, fun(), obj.x
         for word in tuple.get(field).split():
             yield [word]
 
@@ -61,6 +66,8 @@ def main():
             c += 1
         yield [c]
 
-    input | Map('line', split_words(0, fun), 'word') | GroupBy('word') | count | output
+    c = C()
+    c.x = 2
+    input | Map('line', split_words(0, m, c), 'word') | GroupBy('word') | count | output
 
     flow.run(num_reducers=2)

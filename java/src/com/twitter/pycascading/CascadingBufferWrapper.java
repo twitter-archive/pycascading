@@ -80,12 +80,8 @@ public class CascadingBufferWrapper extends CascadingRecordProducerWrapper imple
       callArgs[1] = Py.java2py(arguments);
       if (outputMethod == OutputMethod.COLLECTS) {
         callArgs[2] = Py.java2py(outputCollector);
-        if (flowProcessPassIn == FlowProcessPassIn.YES)
-          callArgs[3] = Py.java2py(flowProcess);
         callFunction();
       } else {
-        if (flowProcessPassIn == FlowProcessPassIn.YES)
-          callArgs[2] = Py.java2py(flowProcess);
         Object ret = callFunction();
         collectOutput(outputCollector, ret);
       }

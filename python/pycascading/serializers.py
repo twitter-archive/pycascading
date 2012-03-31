@@ -1,8 +1,7 @@
 
-import inspect
+import inspect, re, types, pickle
 
 import pipe
-from com.twitter.pycascading import PythonFunctionWrapper
 
 
 def _remove_indents_from_function(code):
@@ -11,54 +10,121 @@ def _remove_indents_from_function(code):
     Otherwise an exec later when running the function would complain about
     the indents.
     """
-    i = 0
-    indent = 0
-    blanks = -1
+
+    def swap_tabs_to_spaces(line):
+        new_line = ''
+        for i in xrange(0, len(line)):
+            if line[i] == ' ':
+                new_line += line[i]
+            elif line[i] == '\t':
+                new_line += ' ' * 8
+            else:
+                new_line += line[i : len(line)]
+                break
+        return new_line
+
+    lines = code.split('\n')
+    indent = -1
+    for line in lines:
+        m = re.match('^([ \t]*)def\s.*$', line)
+        if m:
+            #print line, 'x', m.group(1), 'x'
+            indent = len(swap_tabs_to_spaces(m.group(1)))
+            break
+    if indent < 0:
+        raise Exception('No def found for function source')
+    #print 'indent', indent
     result = ''
-    while i < len(code):
-        if blanks < 0:
-            if code[i] == ' ':
-                indent += 1
-            elif code[i] == '\t':
-                indent += 8
+    for line in lines:
+        line = swap_tabs_to_spaces(line)
+        i = 0
+        while i < len(line):
+            if i < indent and line[i] == ' ':
+                i += 1
             else:
-                result = code[i]
-                blanks = indent
-        else:
-            if blanks >= indent:
-                # This is to substitute indenting tabs if necessary
-                result += ' ' * (blanks - indent) + code[i]
-                blanks = indent
-            else:
-                if code[i] == ' ':
-                    blanks += 1
-                elif code[i] == '\t':
-                    blanks += 8
-                else:
-                    # This happens when in one line we have less indent
-                    # than in the first, but this should have been caught by
-                    # the compiler, so we shouldn't get here ever.
-                    raise Exception('Indents mismatch')
-            if code[i] == '\n':
-                blanks = 0
-        i += 1
+                break
+        result += line[i : len(line)] + '\n'
     return result
+
+
+def _get_source(func):
+    return _remove_indents_from_function(inspect.getsource(func))
+
+def function_scope(func):
+    if (not inspect.isfunction(func)) and (not inspect.ismethod(func)):
+        raise Exception('Expecting a (non-built-in) function or method')
+    name = func.func_name
+    module = inspect.getmodule(func)
+    module_name = module.__name__
+    if module_name == '__main__':
+        module_name = ''
+    enclosing_object = None
+    if inspect.ismethod(func):
+        if func.im_class == types.ClassType:
+            # Function is a classmethod
+            class_name = func.im_self.__name__
+            if class_name in dir(module):
+                # Class is a top-level class in the module
+                type = 'classmethod'
+                source = None
+            else:
+                raise Exception('Class for @classmethod is nested, and Python '
+                                'cannot determine the nesting class, '
+                                'thus it\'s not allowed')
+        else:
+            # Function is a normal method
+            class_name = func.im_class.__name__
+            enclosing_object = func.im_self
+            if class_name in dir(module):
+                # Class is a top-level class in the module
+                type = 'method'
+                source = None
+            else:
+                raise Exception('The method\'s class is not top-level')
+    else:
+        # The function is a global or nested function, but not a method in a class
+        class_name = None
+        if name in dir(module):
+            # Function is a global function
+            type = 'global'
+            source = None
+        else:
+            # Function is a closure
+            type = 'closure'
+            source = _get_source(func)
+    return (type, module_name, class_name, name, source)
 
 
 def replace_object(obj):
     if inspect.isfunction(obj):
-#        print '****** replace_object', obj, inspect.getsource(obj)
-        source = _remove_indents_from_function(inspect.getsource(obj))
-        wrapped_func = PythonFunctionWrapper(obj, source)
-#        print '*** run mode', pipe.config['pycascading.running_mode']
-        if pipe.config['pycascading.running_mode'] == 'local':
-            wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)
-        else:
-            wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.HADOOP)
-        return wrapped_func
+        return function_scope(obj)
     else:
         return None
 
+class C:
+    def m(self):
+        pass
+    @classmethod
+    def cm(cls):
+        pass
 
-def resolve_object(obj):
-    return None
+def f1():
+    pass
+
+from mod import *
+
+def main():
+    def f2():
+        pass
+
+    print function_scope(f1)
+    print function_scope(f2)
+    print function_scope(C.cm)
+    print function_scope(C().m)
+    print function_scope(m_fg)
+    print function_scope(m_C.cm)
+    print function_scope(m_C().m)
+    print function_scope(m_C.m_C_1.m)
+
+if __name__ == '__main__':
+    main()

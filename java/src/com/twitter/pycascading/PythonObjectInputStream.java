@@ -4,48 +4,47 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 
-import org.apache.hadoop.mapred.JobConf;
 import org.python.core.Py;
-import org.python.core.PyFunction;
 import org.python.core.PyObject;
-import org.python.core.PyString;
+import org.python.core.PyTuple;
 import org.python.util.PythonInterpreter;
 
+/**
+ * When deserializing the job, this class reconstructs the Python functions
+ * given by their name and/or source.
+ * 
+ * @author Gabor Szabo
+ */
 public class PythonObjectInputStream extends ObjectInputStream {
 
-  private InputStream inputStream;
-  private StringBuilder sources;
+  private PythonInterpreter interpreter;
 
-  public PythonObjectInputStream(InputStream in, StringBuilder sources) throws IOException {
+  public PythonObjectInputStream(InputStream in, PythonInterpreter interpreter) throws IOException {
     super(in);
-    inputStream = in;
-    this.sources = sources;
+    this.interpreter = interpreter;
     enableResolveObject(true);
   }
 
   @Override
   protected Object resolveObject(Object obj) throws IOException {
-    // System.out.println("*** resolve " + obj + " " + obj.getClass());
-    // JobConf conf = new JobConf();
-    // System.out.println("***** jobconf " +
-    // conf.get("mapred.cache.localArchives"));
-    if (obj instanceof PythonFunctionWrapper) {
-      PythonInterpreter interpreter = Main.getInterpreter();
-      String name = Py.tojava(((PythonFunctionWrapper) obj).funcName, String.class);
-      System.out.println("#### resolved " + name + " " + obj + " " + obj.getClass());
-      // String expr = name + " = lambda: 1";
-      // interpreter.exec(expr);
-      interpreter.exec(((PythonFunctionWrapper) obj).funcSource);
-      // System.out.println("**** execed " + expr);
-      PyObject ret = interpreter.get(name);
-      System.out.println("*** returned " + ret + "/" + ret.getClass());
-      // Object resolved = super.resolveObject(obj);
-      // System.out.println("*** resolvefunc " + resolved + " " +
-      // resolved.getClass());
-      return ret;
+    // This method will reconstruct the PyFunction based on its name or its
+    // source if it was a closure
+    if (obj instanceof SerializedPythonFunction) {
+      PyTuple serializedFunction = ((SerializedPythonFunction) obj).getSerializedFunction();
+      String functionType = (String) serializedFunction.get(0);
+      String functionName = (String) serializedFunction.get(3);
+      PyObject function = null;
+      if ("global".equals(functionType)) {
+        function = interpreter.get(functionName);
+      } else if ("closure".equals(functionType)) {
+        interpreter.exec((String) serializedFunction.get(4));
+        function = interpreter.get(functionName);
+      }
+      System.out.println("%%%%%% func name " + serializedFunction);
+      System.out.println("***** function resolved: " + function);
+      System.out.println("*** returned " + function + "/" + function.getClass());
+      return function;
     } else
       return obj;
-    // return super.resolveObject(obj);
-    // PythonInterpreter interpreter = Main.getInterpreter();
   }
 }

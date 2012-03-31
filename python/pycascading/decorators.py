@@ -48,7 +48,6 @@ collects_output
 yields
 produces_python_list
 produces_tuples
-flowprocess_expected
 """
 
 __author__ = 'Gabor Szabo'
@@ -83,11 +82,6 @@ def _function_decorator(*args, **kwargs):#additional_parameters):
     else:
         return fun_decorator
 
-#    if function == None:
-#        return fun_decorator
-#    else:
-#        return fun_decorator(function)
-
 
 def numargs_expected(num):
     """The function expects a num number of fields in the input tuples.
@@ -95,7 +89,9 @@ def numargs_expected(num):
     Arguments:
     num -- the number of fields that the input tuples must have
     """
-    return _function_decorator({ 'numargs_expected' : num })
+    params = dict(kwargs)
+    params.update({ 'numargs_expected' : num })
+    return _function_decorator(*args, **params)
 
 
 def python_list_expected():
@@ -104,8 +100,10 @@ def python_list_expected():
     There is some performance penalty as all the incoming tuples need to be
     converted to Python lists.
     """
-    return _function_decorator({ 'input_conversion' :
-    CascadingBaseOperationWrapper.ConvertInputTuples.PYTHON_LIST })
+    params = dict(kwargs)
+    params.update({ 'input_conversion' :
+                   CascadingBaseOperationWrapper.ConvertInputTuples.PYTHON_LIST })
+    return _function_decorator(*args, **params)
 
 
 def python_dict_expected():
@@ -118,8 +116,10 @@ def python_dict_expected():
     There is some performance penalty as all the incoming tuples need to be
     converted to Python dicts.
     """
-    return _function_decorator({ 'input_conversion' :
-    CascadingBaseOperationWrapper.ConvertInputTuples.PYTHON_DICT })
+    params = dict(kwargs)
+    params.update({ 'input_conversion' :
+                   CascadingBaseOperationWrapper.ConvertInputTuples.PYTHON_DICT })
+    return _function_decorator(*args, **params)
 
 
 def collects_output():
@@ -132,8 +132,10 @@ def collects_output():
     Use this if performance is important, as no conversion takes place between
     Python objects and Cascading tuples.
     """
-    return _function_decorator({ 'output_method' : \
-    CascadingRecordProducerWrapper.OutputMethod.COLLECTS })
+    params = dict(kwargs)
+    params.update({ 'output_method' : \
+                   CascadingRecordProducerWrapper.OutputMethod.COLLECTS })
+    return _function_decorator(*args, **params)
 
 
 def yields(*args, **kwargs):
@@ -171,19 +173,10 @@ def produces_tuples():
     No conversion takes place so this is a fast way to add tuples to the
     output.
     """
-    return _function_decorator({ 'output_type' : \
-    CascadingRecordProducerWrapper.OutputType.TUPLE })
-
-
-def flowprocess_expected():
-    # TODO: just set a Python variable for this like for jobconf
-    """Pass in the flowProcess variable to the Python function.
-
-    Cascading supplies a FlowProcess variable to every custom function call.
-    This attribute instructs PyCascading to pass it on to the Python function.
-    """
-    return _function_decorator({ 'flow_process_pass_in' : \
-    CascadingRecordProducerWrapper.FlowProcessPassIn.YES })
+    params = dict(kwargs)
+    params.update({ 'output_type' : \
+                   CascadingRecordProducerWrapper.OutputType.TUPLE })
+    return _function_decorator(*args, **params)
 
 
 def filter(*args, **kwargs):
@@ -268,3 +261,15 @@ def udf(*args, **kwargs):
         return _function_decorator({ 'type' : 'auto' }, function=args[0])
     else:
         return _function_decorator({ 'type' : 'auto', 'produces' : produces })
+
+def unwrap(*args, **kwargs):
+    """Unwraps the tuple into function parameters before calling the function.
+    """
+    params = dict(kwargs)
+    params.update({ 'parameters' : 'unwrap' })
+    return _function_decorator(*args, **params)
+
+def tuplein(*args, **kwargs):
+    params = dict(kwargs)
+    params.update({ 'parameters' : 'tuple' })
+    return _function_decorator(*args, **params)

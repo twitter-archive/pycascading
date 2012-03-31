@@ -36,8 +36,6 @@ import org.python.core.PyString;
 import org.python.core.PyTuple;
 import org.python.util.PythonInterpreter;
 
-import com.twitter.pycascading.PythonFunctionWrapper.RunningMode;
-
 import cascading.flow.FlowProcess;
 import cascading.flow.hadoop.HadoopFlowProcess;
 import cascading.operation.BaseOperation;
@@ -51,7 +49,7 @@ import cascading.tuple.TupleEntry;
  * 
  * @author Gabor Szabo
  */
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({ "rawtypes", "deprecation" })
 public class CascadingBaseOperationWrapper extends BaseOperation implements Serializable {
   private static final long serialVersionUID = -535185466322890691L;
 
@@ -63,15 +61,24 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
 
   private PyObject function;
   private ConvertInputTuples convertInputTuples;
-  private PyFunction writeObjectCallBack;
-  private byte[] serializedFunction;
-
   private PyTuple contextArgs = null;
   protected PyDictionary contextKwArgs = null;
 
+  private PyFunction writeObjectCallBack;
+  private byte[] serializedFunction;
+
+  // These are some variables to optimize the frequent UDF calls
   protected PyObject[] callArgs = null;
   private String[] contextKwArgsNames = null;
 
+  /**
+   * Class to convert elements in an iterator to corresponding Jython objects.
+   * 
+   * @author Gabor Szabo
+   * 
+   * @param <I>
+   *          the type of the items
+   */
   class ConvertIterable<I> implements Iterator<PyObject> {
     private Iterator<I> iterator;
 
@@ -114,7 +121,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     super(numArgs, fieldDeclaration);
   }
 
-  private void setupInterpreter(JobConf jobConf) {
+  private PythonInterpreter setupInterpreter(JobConf jobConf, FlowProcess flowProcess) {
     System.out.println("******* calling setupInt");
     String pycascadingDir = null;
     String sourceDir = null;
@@ -152,28 +159,26 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     // We set the Python variable "jobconf" to the MR jobconf
     interpreter.set("jobconf", jobConf);
 
-    // PyObject module = (PyObject) interpreter
-    // .eval("load_source(module_name, file_name, module_paths)");
-    // We need to do this so that nested functions can also be used
+    interpreter.set("flow_process", flowProcess);
+
+    // We need to run the main file first so that imports etc. are defined,
+    // and nested functions can also be used
     interpreter.execfile(sourceDir + (String) jobConf.get("pycascading.main_file"));
-    // interpreter.exec(funcSource);
-    // pythonFunction = module.__getattr__(funcName);
+    return interpreter;
   }
 
+  // We need to delay the deserialization of the Python functions up to this
+  // point, since the sources are in the distributed cache, whose location is in
+  // the jobconf, and we get access to the jobconf only at this point for the
+  // first time.
   @Override
   public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
-    System.out.println("******* baseopprepare");
-    // pythonEnvironment = new PythonEnvironment();
-    // function.prepare(((HadoopFlowProcess) flowProcess).getJobConf());
     JobConf jobConf = ((HadoopFlowProcess) flowProcess).getJobConf();
-    System.out.println("$$$$$ jobconf: " + jobConf.get("pycascading.running_mode"));
-    setupInterpreter(jobConf);
+    PythonInterpreter interpreter = setupInterpreter(jobConf, flowProcess);
 
-    ByteArrayInputStream str = new ByteArrayInputStream(serializedFunction);
-    StringBuilder sources = new StringBuilder();
+    ByteArrayInputStream baos = new ByteArrayInputStream(serializedFunction);
     try {
-      PythonObjectInputStream pythonStream = new PythonObjectInputStream(str, sources);
-      // // function = (PythonFunctionWrapper) pythonStream.readObject();
+      PythonObjectInputStream pythonStream = new PythonObjectInputStream(baos, interpreter);
 
       function = (PyObject) pythonStream.readObject();
       convertInputTuples = (ConvertInputTuples) pythonStream.readObject();
@@ -181,31 +186,28 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
         contextArgs = (PyTuple) pythonStream.readObject();
       if ((Boolean) pythonStream.readObject())
         contextKwArgs = (PyDictionary) pythonStream.readObject();
-      str.close();
-      serializedFunction = null;
-      PythonInterpreter interpreter = Main.getInterpreter();
-      // function2 = (PyFunction) interpreter.get(Py.tojava(function.funcName,
-      // String.class));
-      System.out.println("we got: " + function);
-      if (!PyFunction.class.isInstance(function)) {
-        // function is assumed to be decorated, resulting in a
-        // DecoratedFunction.
-        // The function was decorated so we need to get the original back
-        // Only for performance reasons. It's just as good to comment this
-        // out, as a DecoratedFunction is callable anyway.
-        // If we were to decorate the functions with other decorators as
-        // well, we certainly cannot use this.
-        try {
-          function = (PyFunction) ((PyDictionary) (function.__getattr__(new PyString("decorators"))))
-                  .get(new PyString("function"));
-        } catch (Exception e) {
-          throw new RuntimeException(
-                  "Expected a Python function or a decorated function. This shouldn't happen.");
-        }
-      }
+      baos.close();
     } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      // If there are any kind of exceptions (ClassNotFoundException or
+      // IOException), we don't want to continue.
+      throw new RuntimeException(e);
+    }
+    serializedFunction = null;
+    if (!PyFunction.class.isInstance(function)) {
+      // function is assumed to be decorated, resulting in a
+      // DecoratedFunction, so we can get the original function back.
+      //
+      // Only for performance reasons. It's just as good to comment this
+      // out, as a DecoratedFunction is callable anyway.
+      // If we were to decorate the functions with other decorators as
+      // well, we certainly cannot use this.
+      try {
+        function = (PyFunction) ((PyDictionary) (function.__getattr__(new PyString("decorators"))))
+                .get(new PyString("function"));
+      } catch (Exception e) {
+        throw new RuntimeException(
+                "Expected a Python function or a decorated function. This shouldn't happen.");
+      }
     }
     System.out.println("####### contextArgs " + contextArgs);
     setupArgs();
@@ -213,21 +215,26 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
 
   private void writeObject(ObjectOutputStream stream) throws IOException {
     System.out.println("*** CascadingBaseOperationWrapper writeObject");
-    ByteArrayOutputStream str = new ByteArrayOutputStream();
-    PythonObjectOutputStream pythonStream = new PythonObjectOutputStream(str, writeObjectCallBack);
-    // pythonStream.writeObject(function);
-    System.out.println("1");
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    PythonObjectOutputStream pythonStream = new PythonObjectOutputStream(baos, writeObjectCallBack);
     pythonStream.writeObject(function);
-    System.out.println("2");
+    System.out.println("1");
     pythonStream.writeObject(convertInputTuples);
+    System.out.println("1");
     pythonStream.writeObject(new Boolean(contextArgs != null));
-    if (contextArgs != null)
+    System.out.println("1");
+    if (contextArgs != null) {
+      System.out.println("******* contextArgs: " + contextArgs);
       pythonStream.writeObject(contextArgs);
+    }
+    System.out.println("1");
     pythonStream.writeObject(new Boolean(contextKwArgs != null));
     if (contextKwArgs != null)
       pythonStream.writeObject(contextKwArgs);
     pythonStream.close();
-    stream.writeObject(str.toByteArray());
+    System.out.println("1");
+
+    stream.writeObject(baos.toByteArray());
   }
 
   private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException,
@@ -235,18 +242,8 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     // TODO: we need to start up the interpreter and for all the imports, as
     // the parameters may use other imports, like datetime. Or how else can
     // we do this better?
+    System.out.println("^^^^^ cbow reado");
     serializedFunction = (byte[]) stream.readObject();
-    // ByteArrayInputStream str = new ByteArrayInputStream(arr);
-    // PythonObjectInputStream pythonStream = new PythonObjectInputStream(str,
-    // sources);
-    // // function = (PythonFunctionWrapper) pythonStream.readObject();
-    // function2 = (PyFunction) pythonStream.readObject();
-    // convertInputTuples = (ConvertInputTuples) pythonStream.readObject();
-    // if ((Boolean) pythonStream.readObject())
-    // contextArgs = (PyTuple) pythonStream.readObject();
-    // if ((Boolean) pythonStream.readObject())
-    // contextKwArgs = (PyDictionary) pythonStream.readObject();
-    // str.close();
   }
 
   /**
@@ -261,35 +258,17 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   }
 
   /**
-   * We may pass in Python functions as an argument to UDFs. In this case we
-   * have to wrap these the same way we wrapped the UDFs, and need to unwrap
-   * them at deserialization.
-   * 
-   * @return the original argument to the UDF before serialization
-   */
-  private PyObject getOriginalArg(PyObject arg) {
-    return arg;
-    // Object result = arg.__tojava__(PythonFunctionWrapper.class);
-    // if (result == Py.NoConversion)
-    // return arg;
-    // else
-    // return ((PythonFunctionWrapper) result).getPythonFunction();
-  }
-
-  /**
-   * Sets up the local variables that were not serialized for optimizations and
-   * unwraps function arguments wrapped with PythonFunctionWrapper.
+   * Sets up the local variables that were not serialized for optimizations.
    */
   protected void setupArgs() {
     int numArgs = getNumParameters();
     callArgs = new PyObject[numArgs + (contextArgs == null ? 0 : contextArgs.size())
             + (contextKwArgs == null ? 0 : contextKwArgs.size())];
-    System.out.println("&&&&&&& numargs " + numArgs + "/" + callArgs.length + "/" + contextArgs);
     int i = numArgs;
     if (contextArgs != null) {
       PyObject[] args = contextArgs.getArray();
       for (PyObject arg : args) {
-        callArgs[i] = getOriginalArg(arg);
+        callArgs[i] = arg;
         i++;
       }
     }
@@ -297,7 +276,7 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
       PyIterator values = (PyIterator) contextKwArgs.itervalues();
       PyObject value = values.__iternext__();
       while (value != null) {
-        callArgs[i] = getOriginalArg(value);
+        callArgs[i] = value;
         value = values.__iternext__();
         i++;
       }
@@ -359,27 +338,62 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
       return function.__call__(callArgs);
     else
       return function.__call__(callArgs, contextKwArgsNames);
-    // return function.callFunction(callArgs, contextKwArgsNames);
   }
 
+  /**
+   * Setter for the Python function object.
+   * 
+   * @param function
+   *          the Python function
+   */
   public void setFunction(PyFunction function) {
     this.function = function;
   }
 
+  /**
+   * Setter for the input tuple conversion type.
+   * 
+   * @param convertInputTuples
+   *          whether to do any conversion on input tuples, and the type of the
+   *          converted tuple (none/list/dict)
+   */
   public void setConvertInputTuples(ConvertInputTuples convertInputTuples) {
     this.convertInputTuples = convertInputTuples;
   }
 
+  /**
+   * Setter for the constant unnamed arguments that are passed in for the UDF
+   * aside from the tuples.
+   * 
+   * @param args
+   *          the additional unnamed arguments
+   */
   public void setContextArgs(PyTuple args) {
     contextArgs = args;
     setupArgs();
   }
 
+  /**
+   * Setter for the constant named arguments that are passed in for the UDF
+   * aside from the tuples.
+   * 
+   * @param args
+   *          the additional unnamed arguments
+   */
   public void setContextKwArgs(PyDictionary kwargs) {
     contextKwArgs = kwargs;
     setupArgs();
   }
 
+  /**
+   * The Python callback function to call to get the source of a PyFunction. We
+   * better do it in Python using the inspect module, than hack it around in
+   * Java.
+   * 
+   * @param callBack
+   *          the PyFunction that is called to get the source of a Python
+   *          function
+   */
   public void setWriteObjectCallBack(PyFunction callBack) {
     this.writeObjectCallBack = callBack;
   }

@@ -57,6 +57,7 @@ public class CascadingFunctionWrapper extends CascadingRecordProducerWrapper imp
    * is not initialized yet if we call it from CascadingBaseOperationWrapper.
    */
   private void readObject(ObjectInputStream stream) {
+    System.out.println("^^^^^^ cfw reado");
     setupArgs();
   }
 
@@ -75,14 +76,9 @@ public class CascadingFunctionWrapper extends CascadingRecordProducerWrapper imp
       // The Python function collects the output tuples itself into the output
       // collector
       callArgs[1] = Py.java2py(outputCollector);
-      if (flowProcessPassIn == FlowProcessPassIn.YES)
-        callArgs[2] = Py.java2py(flowProcess);
       callFunction();
     } else {
-      // TODO: remove this and make flowprocess a python variable
       // The Python function yields or returns records
-      if (flowProcessPassIn == FlowProcessPassIn.YES)
-        callArgs[1] = Py.java2py(flowProcess);
       Object ret = callFunction();
       collectOutput(outputCollector, ret);
     }

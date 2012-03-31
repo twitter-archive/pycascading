@@ -8,6 +8,14 @@ public class Main {
 
   private static PythonInterpreter interpreter = null;
 
+  /**
+   * This is the main method that gets passed to Hadoop, or executed in local
+   * mode.
+   * 
+   * @param args
+   *          the command line arguments
+   * @throws Exception
+   */
   public static void main(String[] args) throws Exception {
     Properties sysProps = System.getProperties();
     Properties props = new Properties();
@@ -17,9 +25,13 @@ public class Main {
     getInterpreter().execfile(args[0]);
   }
 
+  /**
+   * Create and return the Python interpreter (singleton per JVM).
+   * 
+   * @return the Python interpreter
+   */
   public static PythonInterpreter getInterpreter() {
     if (interpreter == null) {
-      System.out.println("###### starting new int");
       interpreter = new PythonInterpreter();
     }
     return interpreter;

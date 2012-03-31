@@ -37,7 +37,7 @@ random_pipe_name
 __author__ = 'Gabor Szabo'
 
 
-import types, inspect
+import types, inspect, pickle
 
 import cascading.pipe
 import cascading.tuple
@@ -45,8 +45,7 @@ import cascading.operation
 import cascading.pipe.cogroup
 from com.twitter.pycascading import CascadingFunctionWrapper, \
 CascadingFilterWrapper, CascadingAggregatorWrapper, CascadingBufferWrapper, \
-PythonFunctionWrapper, CascadingBaseOperationWrapper, \
-CascadingRecordProducerWrapper
+CascadingBaseOperationWrapper, CascadingRecordProducerWrapper
 
 import serializers
 
@@ -123,101 +122,6 @@ def random_pipe_name(prefix):
     return name
 
 
-def _python_function_to_java(function):
-    """Create the serializable Java object for a Python function."""
-
-    def remove_indents(code):
-        """Remove leading indents from the function's source code.
-
-        Otherwise an exec later when running the function would complain about
-        the indents.
-        """
-        i = 0
-        indent = 0
-        blanks = -1
-        result = ''
-        while i < len(code):
-            if blanks < 0:
-                if code[i] == ' ':
-                    indent += 1
-                elif code[i] == '\t':
-                    indent += 8
-                else:
-                    result = code[i]
-                    blanks = indent
-            else:
-                if blanks >= indent:
-                    # This is to substitute indenting tabs if necessary
-                    result += ' ' * (blanks - indent) + code[i]
-                    blanks = indent
-                else:
-                    if code[i] == ' ':
-                        blanks += 1
-                    elif code[i] == '\t':
-                        blanks += 8
-                    else:
-                        # This happens when in one line we have less indent
-                        # than in the first, but this should have been caught by
-                        # the compiler, so we shouldn't get here ever.
-                        raise Exception('Indents mismatch')
-                if code[i] == '\n':
-                    blanks = 0
-            i += 1
-        return result
-
-    source = remove_indents(inspect.getsource(function))
-    function_name = function.func_name
-    wrapped_func = PythonFunctionWrapper(function, source)
-    if config['pycascading.running_mode'] == 'local':
-        wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.LOCAL)
-    else:
-        wrapped_func.setRunningMode(PythonFunctionWrapper.RunningMode.HADOOP)
-    return wrapped_func
-
-
-def _function_source(func):
-    def remove_indents(code):
-        """Remove leading indents from the function's source code.
-
-        Otherwise an exec later when running the function would complain about
-        the indents.
-        """
-        i = 0
-        indent = 0
-        blanks = -1
-        result = ''
-        while i < len(code):
-            if blanks < 0:
-                if code[i] == ' ':
-                    indent += 1
-                elif code[i] == '\t':
-                    indent += 8
-                else:
-                    result = code[i]
-                    blanks = indent
-            else:
-                if blanks >= indent:
-                    # This is to substitute indenting tabs if necessary
-                    result += ' ' * (blanks - indent) + code[i]
-                    blanks = indent
-                else:
-                    if code[i] == ' ':
-                        blanks += 1
-                    elif code[i] == '\t':
-                        blanks += 8
-                    else:
-                        # This happens when in one line we have less indent
-                        # than in the first, but this should have been caught by
-                        # the compiler, so we shouldn't get here ever.
-                        raise Exception('Indents mismatch')
-                if code[i] == '\n':
-                    blanks = 0
-            i += 1
-        return result
-
-    return remove_indents(inspect.getsource(func))
-
-
 def _wrap_function(function, casc_function_type):
     """Wrap a Python function into a Serializable and callable Java object.
     This wrapping is necessary as Cascading serializes the job pipeline before
@@ -249,14 +153,11 @@ def _wrap_function(function, casc_function_type):
         if decorators['type'] in set(['map', 'reduce', 'auto']):
             fw.setOutputMethod(decorators['output_method'])
             fw.setOutputType(decorators['output_type'])
-            fw.setFlowProcessPassIn(decorators['flow_process_pass_in'])
         fw.setContextArgs(decorators['args'])
         fw.setContextKwArgs(decorators['kwargs'])
     else:
         # When function is a pure Python function, declared without decorators
         fw = casc_function_type()
-    wrapped_func = _python_function_to_java(function)
-#    fw.setFunction(wrapped_func)
     fw.setFunction(function)
     fw.setWriteObjectCallBack(serializers.replace_object)
     return fw
@@ -405,6 +306,7 @@ class DecoratedFunction(Operation):
         """
         args, kwargs = self._wrap_argument_functions(args, kwargs)
         if args:
+            print '@@@@@@@@@ storing args', args
             self.decorators['args'] = args
         if kwargs:
             self.decorators['kwargs'] = kwargs
@@ -446,7 +348,8 @@ class DecoratedFunction(Operation):
                 args_out.append(arg)
         for key in kwargs:
             if type(kwargs[key]) == types.FunctionType:
-                kwargs[key] = _python_function_to_java(kwargs[key])
+#                kwargs[key] = _python_function_to_java(kwargs[key])
+                pass
         return (tuple(args_out), kwargs)
 
     @classmethod
@@ -460,8 +363,6 @@ class DecoratedFunction(Operation):
         CascadingRecordProducerWrapper.OutputMethod.YIELDS_OR_RETURNS
         dff.decorators['output_type'] = \
         CascadingRecordProducerWrapper.OutputType.AUTO
-        dff.decorators['flow_process_pass_in'] = \
-        CascadingRecordProducerWrapper.FlowProcessPassIn.NO
         dff.decorators['args'] = None
         dff.decorators['kwargs'] = None
         return dff

@@ -87,5 +87,6 @@ if __name__ == "__main__":
     # if it was coming from a simple command line execution
     sys.argv = args[2:]
 
-    m = imp.load_source('main', pycascading.pipe.config['pycascading.main_file'])
-    m.main()
+    _main_module_ = imp.load_source('__main__', \
+        pycascading.pipe.config['pycascading.main_file'])
+    _main_module_.main()
