@@ -44,7 +44,6 @@ public class SelectFields extends BaseOperation implements Function, Serializabl
 
   @Override
   public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
-    // TODO Auto-generated method stub
     super.prepare(flowProcess, operationCall);
   }
 

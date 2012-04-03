@@ -33,7 +33,7 @@ from pycascading.pipe import Apply, SubAssembly, coerce_to_fields
 from pycascading.decorators import udf
 
 
-def Map(*args):
+def _Map(output_selector, *args):
     """Maps the given input fields to output fields.
 
     The fields specified as input will be removed from the result.
@@ -46,7 +46,25 @@ def Map(*args):
     else:
         raise Exception('Map needs to be called with 2 or 3 parameters')
     df = udf(produces=output_field)(function)
-    return Apply(input_selector, df, Fields.SWAP)
+    return Apply(input_selector, df, output_selector)
+
+
+def MapTo(*args):
+    """Map the tuple, and remove the mapped fields, and add the new fields.
+
+    This mapping replaces the fields mapped with the new fields that the
+    mapping operation adds.
+    """
+    return _Map(Fields.SWAP, *args)
+
+
+def MapJoin(*args):
+    """Map the defined fields (or all fields), and add the results to the tuple.
+
+    Note that the new field names we are adding to the tuple cannot overlap
+    with existing field names, or Cascading will complain.
+    """
+    return _Map(Fields.ALL, *args)
 
 
 def Retain(*fields_to_keep):
@@ -61,7 +79,7 @@ def Retain(*fields_to_keep):
     return Apply(fields_to_keep, Identity(Fields.ARGS), Fields.RESULTS)
 
 
-def Discard(fields_to_discard):
+def _Discard(fields_to_discard):
     # In 2.0 there's a builtin function this, Discard
     # In 1.2 there is nothing for this
     return Apply(fields_to_discard, Identity(), Fields.REPLACE)
