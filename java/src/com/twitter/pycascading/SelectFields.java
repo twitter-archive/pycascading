@@ -35,11 +35,11 @@ import cascading.tuple.TupleEntryCollector;
 public class SelectFields extends BaseOperation implements Function, Serializable {
   private static final long serialVersionUID = -6859909716154224842L;
 
-  private Fields filteredFileds;
+  private Fields filteredFields;
 
-  public SelectFields(Fields filteredFileds) {
-    super(filteredFileds);
-    this.filteredFileds = filteredFileds;
+  public SelectFields(Fields filteredFields) {
+    super(filteredFields);
+    this.filteredFields = filteredFields;
   }
 
   @Override
@@ -53,7 +53,7 @@ public class SelectFields extends BaseOperation implements Function, Serializabl
     TupleEntryCollector outputCollector = functionCall.getOutputCollector();
     Tuple outputTuple = new Tuple();
 
-    for (Comparable field : filteredFileds) {
+    for (Comparable field : filteredFields) {
       // We cannot use inputTuple.get(...) here, as that tries to convert
       // the field value to a Comparable. In case we have a complex Python
       // type as a field, that won't work.
