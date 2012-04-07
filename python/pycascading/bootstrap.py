@@ -37,6 +37,8 @@ if __name__ == "__main__":
     # mode, and the PyCascading tarball in Hadoop mode
     python_dir = sys.argv[2]
 
+    # Remove the first two arguments so that sys.argv will look like as
+    # if it was coming from a simple command line execution
     # The further parameters are the command line parameters to the script
     sys.argv = sys.argv[3:]
 
@@ -82,10 +84,6 @@ if __name__ == "__main__":
     # bootstrap.running_mode from here.
     pycascading.pipe.config['pycascading.running_mode'] = running_mode
     pycascading.pipe.config['pycascading.main_file'] = args[0]
-
-    # Remove the running mode argument so that sys.argv will look like as
-    # if it was coming from a simple command line execution
-    sys.argv = args[2:]
 
     _main_module_ = imp.load_source('__main__', \
         pycascading.pipe.config['pycascading.main_file'])

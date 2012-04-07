@@ -59,7 +59,11 @@ def main():
     # Select the lines beginning with 'A', and save this intermediate result
     # in the cache so that we can call the script several times with
     # different separator characters
-    p = flow.cache('line_begins') | (input | find_lines_with_beginning('A'))
+    p = input | find_lines_with_beginning('A')
+    # Checkpoint the results from 'p' into a cache folder named 'line_begins'
+    # The caches are in the user's HDFS folder, under pycascading.cache/
+    p = flow.cache('line_begins') | p
+    # Everything goes to one reducer
     p | GroupBy(Fields.VALUES) | concat_all(sys.argv[1]) | output
 
     flow.run()

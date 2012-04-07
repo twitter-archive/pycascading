@@ -40,6 +40,7 @@ def main():
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
 
+    # Retain only lines that start with an 'A' or 'T'
     input | starts_with_letters(set(['A', 'T'])) | SelectFields('line') | output
 
     flow.run()
