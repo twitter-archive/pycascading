@@ -198,7 +198,7 @@ if [ -e sources.tgz ]; then
     echo "   \$deploy_dir/run.sh [parameters]"
 fi
 if [ \$1 == 'do_run' ]; then
-    \$deploy_dir/run.sh
+    \$deploy_dir/run.sh "\$@"
 fi
 EOF
 chmod +x "$tmp_dir/setup.sh"
@@ -221,5 +221,5 @@ chmod +x "$tmp_dir/run.sh"
 cd "$tmp_dir"
 tar -c -z -h -f - . | ssh $server $ssh_options \
 "dir=\$(mktemp -d -t PyCascading-tmp-XXXXXX); cd \"\$dir\"; tar -x -z -f -; " \
-"./setup.sh $run_immediately; rm -r \"\$dir\""
+"./setup.sh $run_immediately \"\$@\"; rm -r \"\$dir\""
 rm -r "$tmp_dir"

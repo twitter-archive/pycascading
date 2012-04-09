@@ -73,6 +73,9 @@ if __name__ == "__main__":
             pycascading.pipe.config['pycascading.distributed_cache.archives'] \
             .append(opt[1])
 
+    # This is going to be seen by main()
+    sys.argv = args
+
     # Haha... it's necessary to put this here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,
     # but since at that point the sys.path is not set yet to Lib, it will fail?
