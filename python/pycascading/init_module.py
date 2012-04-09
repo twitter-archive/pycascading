@@ -37,8 +37,6 @@ def setup_paths(module_paths):
                      jython_dir + '/python/Lib'))
     sys.path.extend(module_paths[1 : ])
 
-    print '****** path:', sys.path
-
     # Allow importing of user-installed Jython packages
     # Thanks to Simon Radford
     import site
@@ -91,8 +89,5 @@ def load_source(module_name, file_name, module_paths):
     # but since at that point the sys.path is not set yet to Lib, it will fail?
     #import encodings
 
-    print 'loading source', file_name
-
 #    return imp.load_source(module_name, file_name)
     execfile(file_name)
-    print 'map now:', map, g

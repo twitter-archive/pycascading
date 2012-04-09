@@ -122,7 +122,6 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
   }
 
   private PythonInterpreter setupInterpreter(JobConf jobConf, FlowProcess flowProcess) {
-    System.out.println("******* calling setupInt");
     String pycascadingDir = null;
     String sourceDir = null;
     String[] modulePaths = null;
@@ -145,7 +144,6 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
       modulePaths = new String[] { pycascadingDir, sourceDir };
     }
     PythonInterpreter interpreter = Main.getInterpreter();
-    System.out.println("######## starting initial pull");
     interpreter.execfile(pycascadingDir + "python/pycascading/init_module.py");
     interpreter.set("module_name", "m");
     interpreter.set("file_name", sourceDir + (String) jobConf.get("pycascading.main_file"));
@@ -209,30 +207,22 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
                 "Expected a Python function or a decorated function. This shouldn't happen.");
       }
     }
-    System.out.println("####### contextArgs " + contextArgs);
     setupArgs();
   }
 
   private void writeObject(ObjectOutputStream stream) throws IOException {
-    System.out.println("*** CascadingBaseOperationWrapper writeObject");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     PythonObjectOutputStream pythonStream = new PythonObjectOutputStream(baos, writeObjectCallBack);
     pythonStream.writeObject(function);
-    System.out.println("1");
     pythonStream.writeObject(convertInputTuples);
-    System.out.println("1");
     pythonStream.writeObject(new Boolean(contextArgs != null));
-    System.out.println("1");
     if (contextArgs != null) {
-      System.out.println("******* contextArgs: " + contextArgs);
       pythonStream.writeObject(contextArgs);
     }
-    System.out.println("1");
     pythonStream.writeObject(new Boolean(contextKwArgs != null));
     if (contextKwArgs != null)
       pythonStream.writeObject(contextKwArgs);
     pythonStream.close();
-    System.out.println("1");
 
     stream.writeObject(baos.toByteArray());
   }
@@ -242,7 +232,6 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     // TODO: we need to start up the interpreter and for all the imports, as
     // the parameters may use other imports, like datetime. Or how else can
     // we do this better?
-    System.out.println("^^^^^ cbow reado");
     serializedFunction = (byte[]) stream.readObject();
   }
 

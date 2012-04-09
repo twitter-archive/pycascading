@@ -40,9 +40,6 @@ public class PythonObjectInputStream extends ObjectInputStream {
         interpreter.exec((String) serializedFunction.get(4));
         function = interpreter.get(functionName);
       }
-      System.out.println("%%%%%% func name " + serializedFunction);
-      System.out.println("***** function resolved: " + function);
-      System.out.println("*** returned " + function + "/" + function.getClass());
       return function;
     } else
       return obj;

@@ -55,18 +55,6 @@ from java.io import ObjectOutputStream
 import java.lang.Integer
 
 
-class PythonObjectOutputStream2(ObjectOutputStream):
-    def __init__(self, out):
-        print '***** pipe POOS2 init', out
-        super(PythonObjectOutputStream2).__init__(out)
-        self.out_stream = out
-        super(PythonObjectOutputStream2).enableReplaceObject(True)
-
-    def replaceObject(self, obj):
-        print '***** pipe POOS2 replace', obj
-        return super(PythonObjectOutputStream2).replaceObject(obj)
-
-
 def coerce_to_fields(obj):
     """
     Utility function to convert a list or field name to cascading.tuple.Fields.
@@ -138,7 +126,6 @@ def _wrap_function(function, casc_function_type):
     if isinstance(function, cascading.operation.Operation):
         return function
     if isinstance(function, DecoratedFunction):
-        print '*** dff:', function.decorators
         # Build the arguments for the constructor
         args = []
         decorators = function.decorators
@@ -306,7 +293,6 @@ class DecoratedFunction(Operation):
         """
         args, kwargs = self._wrap_argument_functions(args, kwargs)
         if args:
-            print '@@@@@@@@@ storing args', args
             self.decorators['args'] = args
         if kwargs:
             self.decorators['kwargs'] = kwargs

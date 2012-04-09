@@ -57,7 +57,6 @@ public class CascadingFunctionWrapper extends CascadingRecordProducerWrapper imp
    * is not initialized yet if we call it from CascadingBaseOperationWrapper.
    */
   private void readObject(ObjectInputStream stream) {
-    System.out.println("^^^^^^ cfw reado");
     setupArgs();
   }
 

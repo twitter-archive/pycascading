@@ -16,7 +16,6 @@ public class TemporaryHdfs implements FlowListener {
 
   @Override
   public void onStarting(Flow flow) {
-    System.out.println("************* Flow starting " + flow);
   }
 
   @Override

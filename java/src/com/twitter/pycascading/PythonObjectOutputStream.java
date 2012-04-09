@@ -33,9 +33,6 @@ public class PythonObjectOutputStream extends ObjectOutputStream {
     if (obj instanceof PyFunction) {
       PyObject replaced = callBack.__call__((PyObject) obj);
       if (!(replaced instanceof PyNone)) {
-        System.out.println("######## replaced " + obj + "/" + obj.getClass() + "->" + replaced
-                + " " + replaced.getClass());
-        System.out.println("******* " + ((PyTuple) replaced).get(0).getClass());
         return new SerializedPythonFunction((PyFunction) obj, (PyTuple) replaced);
       }
     }

@@ -5,7 +5,7 @@
 # You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,7 +64,6 @@ def _function_decorator(*args, **kwargs):#additional_parameters):
     A decorator to recursively decorate a function with arbitrary attributes.
     """
     def fun_decorator(function_or_callabledict):
-        print '*** got:', function_or_callabledict
         if isinstance(function_or_callabledict, DecoratedFunction):
             # Another decorator is next
             dff = function_or_callabledict
@@ -252,7 +251,6 @@ def reduce(*args, **kwargs):
 
 
 def udf(*args, **kwargs):
-    print '*** args:', args, kwargs
     params = dict(kwargs)
     return _function_decorator(*args, **params)
     produces = None
@@ -264,6 +262,8 @@ def udf(*args, **kwargs):
 
 def unwrap(*args, **kwargs):
     """Unwraps the tuple into function parameters before calling the function.
+
+    This is not implemented on the Java side yet.
     """
     params = dict(kwargs)
     params.update({ 'parameters' : 'unwrap' })
