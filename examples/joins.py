@@ -13,7 +13,8 @@
 # limitations under the License.
 #
 
-"""Example demonstrating the use of joining and splitting of tuple streams."""
+"""Example showing the joining and splitting of tuple streams."""
+
 
 from pycascading.helpers import *
 
@@ -48,4 +49,4 @@ def main():
     ((p | upper_case) & (rhs | SelectFields(['col2']))) | \
     Join(['ucase_lhs2', 'col2']) | output2
 
-    flow.run()
+    flow.run(num_reducers=2)

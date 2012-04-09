@@ -23,7 +23,7 @@ def main():
     flow = Flow()
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
 
-    out_folder = 'pycascading_data/out/'
+    out_folder = 'pycascading_data/maps/'
 
     @udf(produces='word')
     def decorated_udf(tuple):
@@ -63,4 +63,3 @@ def main():
     flow.tsv_sink(out_folder + 'undecorated_udf_all')
 
     flow.run(num_reducers=1)
-    return

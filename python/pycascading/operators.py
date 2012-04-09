@@ -15,10 +15,10 @@
 
 """Various operations acting on the tuples.
 
-* Add fields to the stream: Add
-* Map fields to new fields: Map
+* Add fields to the stream: MapAdd
+* Map fields to new fields: MapSwap
 * Select fields from the stream: Retain
-* Remove fields from the stream: Discard
+* Remove fields from the stream: Discard (not implemented in Cascading 1.2.*)
 * Rename fields: Rename
 """
 
@@ -63,7 +63,7 @@ def _Map(output_selector, *args):
 
 
 def MapSwap(*args):
-    """Map the tuple, and remove the mapped fields, and add the new fields.
+    """Map the tuple, remove the mapped fields, and add the new fields.
 
     This mapping replaces the fields mapped with the new fields that the
     mapping operation adds.
