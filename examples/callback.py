@@ -21,7 +21,6 @@ Thanks to ebernhardson.
 """
 
 from pycascading.helpers import *
-from com.twitter.pycascading import PythonFunctionWrapper
 
 
 def word_count_callback(value):
@@ -42,4 +41,4 @@ def main():
     word_count(100, second_inc=200, callback=word_count_callback) | \
     output
 
-    flow.run()
+    flow.run(num_reducers=1)

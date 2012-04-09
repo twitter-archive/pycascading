@@ -17,7 +17,9 @@
 
 A cache saves the result of an operation to a temporary folder, and running
 the same script again will take the data from the cached files, instead of
-executing the original pipe again.
+executing the original pipe again. Try to run this job several times with
+different separators: after the first run, the checkpointed state will be
+used for subsequent runs.
 
 This is useful if we want to repeatedly run the script with modifications
 to parts that do not change the cached results. 
@@ -49,7 +51,8 @@ def concat_all(group, tuples, separator):
 
 def main():
     if len(sys.argv) < 2:
-        print 'A character must be given as a separator character.'
+        print 'A character must be given as a command line argument for the ' \
+        'separator character.'
         return
 
     flow = Flow()
