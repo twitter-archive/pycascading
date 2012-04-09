@@ -48,7 +48,9 @@ def _remove_indents_from_function(code):
 
 
 def _get_source(func):
+    """Return the source code for func."""
     return _remove_indents_from_function(inspect.getsource(func))
+
 
 def function_scope(func):
     if (not inspect.isfunction(func)) and (not inspect.ismethod(func)):
@@ -93,3 +95,10 @@ def function_scope(func):
             type = 'closure'
             source = _get_source(func)
     return (type, module_name, class_name, name, source)
+
+
+def replace_object(obj):
+    if inspect.isfunction(obj):
+        return function_scope(obj)
+    else:
+        return None
