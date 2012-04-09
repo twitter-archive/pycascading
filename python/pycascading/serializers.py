@@ -93,38 +93,3 @@ def function_scope(func):
             type = 'closure'
             source = _get_source(func)
     return (type, module_name, class_name, name, source)
-
-
-def replace_object(obj):
-    if inspect.isfunction(obj):
-        return function_scope(obj)
-    else:
-        return None
-
-class C:
-    def m(self):
-        pass
-    @classmethod
-    def cm(cls):
-        pass
-
-def f1():
-    pass
-
-from mod import *
-
-def main():
-    def f2():
-        pass
-
-    print function_scope(f1)
-    print function_scope(f2)
-    print function_scope(C.cm)
-    print function_scope(C().m)
-    print function_scope(m_fg)
-    print function_scope(m_C.cm)
-    print function_scope(m_C().m)
-    print function_scope(m_C.m_C_1.m)
-
-if __name__ == '__main__':
-    main()
