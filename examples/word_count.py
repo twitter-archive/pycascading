@@ -40,4 +40,4 @@ def main():
 
     input | split_words | GroupBy('word') | Count() | output
 
-    flow.run()
+    flow.run(num_reducers=1)

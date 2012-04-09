@@ -66,4 +66,4 @@ def main():
     # Everything goes to one reducer
     p | GroupBy(Fields.VALUES) | concat_all(sys.argv[1]) | output
 
-    flow.run()
+    flow.run(num_reducers=1)
