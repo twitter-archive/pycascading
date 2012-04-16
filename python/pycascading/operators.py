@@ -57,6 +57,9 @@ def _Map(output_selector, *args):
     if isinstance(function, DecoratedFunction):
         # By default we take everything from the UDF's decorators
         df = function
+        if output_field != Fields.UNKNOWN:
+            # But if we specified the output fields, use that
+            df.decorators['produces'] = output_field
     else:
         df = udf(produces=output_field)(function)
     return Apply(input_selector, df, output_selector)
