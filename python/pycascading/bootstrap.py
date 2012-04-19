@@ -15,11 +15,11 @@
 
 """Bootstrap the PyCascading script.
 
-It must be called with the first command line parameter being 'local' or
-'hadoop'. This determines whether we're running the script in local mode or
-with Hadoop. For Hadoop we need to pack the sources into a jar, which are
-extracted later to a temporary directory, so we need to set up the search
-paths differently in this case.
+This is the main Python module that gets executed by Hadoop or in local mode.
+The first command line argument is either 'local' or 'hadoop'. This determines
+whether we're running the script in local mode or with Hadoop. For Hadoop we
+need to pack the sources into a jar, which are extracted later to a temporary
+directory, so we need to set up the search paths differently in this case.
 """
 
 __author__ = 'Gabor Szabo'
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     sys.path.extend((cascading_jar, '.', tmp_dir, python_dir + '/python',
                      python_dir + '/python/Lib'))
 
-    # Allow importing of user-installed Jython packages
+    # Allow the importing of user-installed Jython packages
     import site
     site.addsitedir(python_dir + 'python/Lib/site-packages')
 
@@ -76,18 +76,17 @@ if __name__ == "__main__":
     # This is going to be seen by main()
     sys.argv = args
 
-    # Haha... it's necessary to put this here, otherwise simplejson won't work.
+    # It's necessary to put this import here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,
     # but since at that point the sys.path is not set yet to Lib, it will fail?
     # Instead, we can use Java's JSON decoder...
 #    import encodings
 
-    # We need to explicitly inject running_mode into the tap module,
-    # otherwise we cannot import bootstrap from tap and use the
-    # bootstrap.running_mode from here.
+    # pycascading.pipe.config is a dict with configuration parameters
     pycascading.pipe.config['pycascading.running_mode'] = running_mode
     pycascading.pipe.config['pycascading.main_file'] = args[0]
 
+    # Import and run the user's script
     _main_module_ = imp.load_source('__main__', \
         pycascading.pipe.config['pycascading.main_file'])
     _main_module_.main()

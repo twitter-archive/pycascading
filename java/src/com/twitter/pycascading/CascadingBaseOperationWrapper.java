@@ -145,8 +145,6 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     }
     PythonInterpreter interpreter = Main.getInterpreter();
     interpreter.execfile(pycascadingDir + "python/pycascading/init_module.py");
-    interpreter.set("module_name", "m");
-    interpreter.set("file_name", sourceDir + (String) jobConf.get("pycascading.main_file"));
     interpreter.set("module_paths", modulePaths);
     interpreter.eval("setup_paths(module_paths)");
 
@@ -157,6 +155,8 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
     // We set the Python variable "jobconf" to the MR jobconf
     interpreter.set("jobconf", jobConf);
 
+    // The flowProcess passed to the Operation is passed on to the Python
+    // function in the variable flow_process
     interpreter.set("flow_process", flowProcess);
 
     // We need to run the main file first so that imports etc. are defined,

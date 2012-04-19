@@ -78,6 +78,18 @@ public class CascadingRecordProducerWrapper extends CascadingBaseOperationWrappe
     return (outputMethod == OutputMethod.COLLECTS ? 2 : 1);
   }
 
+  /**
+   * Cast the returned or yielded array to a Tuple, and add it to the output
+   * collector.
+   * 
+   * @param ret
+   *          the object (list) returned from the Python function
+   * @param outputCollector
+   *          the output collector in which we place the Tuple
+   * @param simpleCastIfTuple
+   *          if we can simply cast ret to a Tuple, or have to call Jython's
+   *          casting
+   */
   private void castPythonObject(Object ret, TupleEntryCollector outputCollector,
           boolean simpleCastIfTuple) {
     if (outputType == OutputType.AUTO) {

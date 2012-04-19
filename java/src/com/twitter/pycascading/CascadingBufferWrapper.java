@@ -69,8 +69,8 @@ public class CascadingBufferWrapper extends CascadingRecordProducerWrapper imple
     @SuppressWarnings("unchecked")
     Iterator<TupleEntry> arguments = bufferCall.getArgumentsIterator();
 
-    // This gets called even when there are not tuples for grouping keys after
-    // a CoGroup (see Buffer javadoc). So we need to check if there are any
+    // This gets called even when there are no tuples in the group after
+    // a GroupBy (see the Buffer javadoc). So we need to check if there are any
     // valid tuples returned in the group.
     if (arguments.hasNext()) {
       TupleEntry group = bufferCall.getGroup();
