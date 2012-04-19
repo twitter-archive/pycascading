@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 
 import cascading.flow.Flow;
 import cascading.flow.FlowConnector;
+import cascading.flow.FlowListener;
 import cascading.pipe.Pipe;
 import cascading.tap.Tap;
 
@@ -147,6 +148,31 @@ public class Util {
     if ("hadoop".equals(runningMode)) {
       try {
         flow.addListener(tempDir);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    } else {
+      try {
+        flow.addListener(new FlowListener() {
+
+          @Override
+          public void onStarting(Flow flow) {
+          }
+
+          @Override
+          public void onStopping(Flow flow) {
+          }
+
+          @Override
+          public void onCompleted(Flow flow) {
+          }
+
+          @Override
+          public boolean onThrowable(Flow flow, Throwable throwable) {
+            throwable.printStackTrace();
+            return false;
+          }
+        });
       } catch (Exception e) {
         e.printStackTrace();
       }
