@@ -243,6 +243,13 @@ def udf_buffer(*args, **kwargs):
     like a function emitting arbitrary tuples for groups, rather than just a
     simple aggregator.
 
+    By default the output tuples will be what the buffer returns or yields,
+    and the grouping fields won't be included. This is different from the
+    aggregators' behavior, which add the output fields to the grouping fields.
+
+    Also, only one buffer may follow a GroupBy, in contrast to aggregators, of
+    which many may be present.
+
     See http://groups.google.com/group/cascading-user/browse_thread/thread/f5e5f56f6500ed53/f55fdd6bba399dcf?lnk=gst&q=scope#f55fdd6bba399dcf
     """
     return _function_decorator(args, kwargs, { 'type' : 'buffer' })

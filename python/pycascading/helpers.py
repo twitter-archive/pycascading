@@ -39,11 +39,13 @@ from cascading.tap import *
 
 # Import all important PyCascading modules so we don't have to in the scripts
 from pycascading.decorators import *
-from pycascading.pipe import *
 from pycascading.tap import *
 from pycascading.operators import *
 from pycascading.each import *
 from pycascading.every import *
+from pycascading.cogroup import *
+# We don't import * as the name of some functions (sum) collides with Python
+import pycascading.native as native
 
 # Import Java basic types for conversions
 from java.lang import Integer, Long, Float, Double, String
