@@ -83,7 +83,7 @@ def main():
 
     # Count the number of outgoing links for every node that is a source,
     # and store it in a field called 'out_degree'
-    graph | group_by('from') | Count(Fields(['out_degree'])) | \
+    graph | group_by('from') | native.count('out_degree') | \
     flow.binary_sink(out_links_file)
 
     # Initialize the pageranks of all nodes to 1.0
