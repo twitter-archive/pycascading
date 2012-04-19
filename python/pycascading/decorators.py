@@ -16,38 +16,41 @@
 """
 PyCascading function decorators to be used with user-defined functions.
 
-Cascading can apply user-defined functions to tuple streams after an Each or
-Every operation. These can emit a new set of tuples (using a Function after
-an Each operation), keep or filter out tuples (a Filter after an Each), or
-emit aggregate values (an Aggregator or Buffer for a group after an Every).
+A user-defined function is a function that gets applied as a filter or an
+Each function for each tuple, or the reduce-side function for tuples in a
+grouping in an Every Cascading operation.
 
-We use global Python functions to perform these user-defined operations. When
-building the data processing pipeline, we can simply stream data through a
-Python function with PyCascading if it was decorated by one of the decorators.
-The decorator identifies the function as either a map, filter, or reduce. The
-meaning of these operations is as follows:
+UDFs can emit a new set of tuples (as in a Function after an Each operation),
+keep or filter out tuples (a Filter after an Each), or emit aggregate values
+(an Aggregator or Buffer for a group after an Every).
 
-* A 'map' function is executed for each input tuple, and returns no, one, or
+We use globally or locally scoped Python functions to perform these
+user-defined operations. When building the data processing pipeline, we can
+simply stream data through a Python function with PyCascading if it was
+decorated by one of the decorators.
+
+* A udf_'map' function is executed for each input tuple, and returns no, one, or
 several new output tuples.
 
-* A 'filter' is a boolean-valued function, which should return true if the
+* A 'udf_filter' is a boolean-valued function, which should return true if the
 input tuple should be kept for the output, and false if not.
 
-* A 'reduce' is a function that is applied to groups of tuples, and is the
+* A 'udf_buffer' is a function that is applied to groups of tuples, and is the
 equivalent of a Cascading Buffer. It returns an aggregate after iterating
 through the tuples in the group.
 
 Exports the following:
-map
-filter
-reduce
+udf
+yields
 numargs_expected
 python_list_expected
 python_dict_expected
 collects_output
-yields
 produces_python_list
 produces_tuples
+udf_filter
+udf_map
+udf_buffer
 """
 
 __author__ = 'Gabor Szabo'
@@ -59,10 +62,11 @@ from com.twitter.pycascading import CascadingBaseOperationWrapper
 from com.twitter.pycascading import CascadingRecordProducerWrapper
 
 
-def _function_decorator(*args, **kwargs):#additional_parameters):
+def _function_decorator(args, kwargs, defaults={}):
     """
     A decorator to recursively decorate a function with arbitrary attributes.
     """
+
     def fun_decorator(function_or_callabledict):
         if isinstance(function_or_callabledict, DecoratedFunction):
             # Another decorator is next
@@ -73,8 +77,10 @@ def _function_decorator(*args, **kwargs):#additional_parameters):
         # Add the attributes to the decorated function
         dff.decorators.update(additional_parameters)
         return dff
-    additional_parameters = kwargs
-    if len(args) == 1 and inspect.isroutine(args[0]):
+
+    additional_parameters = dict(defaults)
+    additional_parameters.update(kwargs)
+    if len(args) == 1 and not kwargs and (inspect.isroutine(args[0]) or isinstance(args[0], DecoratedFunction)):
         # We used the decorator without ()s, the first argument is the
         # function. We cannot use additional parameters in this case.
         return fun_decorator(args[0])
@@ -82,30 +88,53 @@ def _function_decorator(*args, **kwargs):#additional_parameters):
         return fun_decorator
 
 
-def numargs_expected(num):
+def udf(*args, **kwargs):
+    """The function can receive tuples or groups of tuples from Cascading.
+
+    This is the decorator to use when we have a function that we want to use
+    in a Cascading job after an Each or Every.
+    """
+    return _function_decorator(args, kwargs)
+
+
+def yields(*args, **kwargs):
+    """The function is a generator that yields output tuples.
+
+    PyCascading considers this function a generator that yields one or more
+    output tuples before returning. If this decorator is not used, the way the
+    function emits tuples is determined automatically at runtime the first time
+    the funtion is called. The alternative to yielding values is to return
+    one tuple with return.
+
+    We can safely yield Nones or not yield anything at all; no output tuples
+    will be emitted in this case.  
+    """
+    return _function_decorator(args, kwargs, \
+    { 'output_method' : CascadingRecordProducerWrapper.OutputMethod.YIELDS })
+
+
+def numargs_expected(num, *args, **kwargs):
     """The function expects a num number of fields in the input tuples.
 
     Arguments:
-    num -- the number of fields that the input tuples must have
+    num -- the exact number of fields that the input tuples must have
     """
-    params = dict(kwargs)
-    params.update({ 'numargs_expected' : num })
-    return _function_decorator(*args, **params)
+    return _function_decorator(args, kwargs, { 'numargs_expected' : num })
 
 
-def python_list_expected():
+def python_list_expected(*args, **kwargs):
     """PyCascading will pass in the input tuples as Python lists.
 
     There is some performance penalty as all the incoming tuples need to be
     converted to Python lists.
     """
     params = dict(kwargs)
-    params.update({ 'input_conversion' :
-                   CascadingBaseOperationWrapper.ConvertInputTuples.PYTHON_LIST })
-    return _function_decorator(*args, **params)
+    params.update()
+    return _function_decorator(args, kwargs, { 'input_conversion' : \
+    CascadingBaseOperationWrapper.ConvertInputTuples.PYTHON_LIST })
 
 
-def python_dict_expected():
+def python_dict_expected(*args, **kwargs):
     """The input tuples are converted to Python dicts for this function.
 
     PyCascading will convert all input tuples to a Python dict for this
@@ -115,94 +144,67 @@ def python_dict_expected():
     There is some performance penalty as all the incoming tuples need to be
     converted to Python dicts.
     """
-    params = dict(kwargs)
-    params.update({ 'input_conversion' :
-                   CascadingBaseOperationWrapper.ConvertInputTuples.PYTHON_DICT })
-    return _function_decorator(*args, **params)
+    return _function_decorator(args, kwargs, { 'input_conversion' : \
+    CascadingBaseOperationWrapper.ConvertInputTuples.PYTHON_DICT })
 
 
-def collects_output():
+def collects_output(*args, **kwargs):
     """The function expects an output collector where output tuples are added.
 
-    PyCascading will pass in an output collector of Cascading class
-    TupleEntryCollector to which the function can add output tuples by
-    calling its 'add' method.
+    PyCascading will pass in a Cascading TupleEntryCollector to which the
+    function can add output tuples by calling its 'add' method.
 
     Use this if performance is important, as no conversion takes place between
     Python objects and Cascading tuples.
     """
-    params = dict(kwargs)
-    params.update({ 'output_method' : \
-                   CascadingRecordProducerWrapper.OutputMethod.COLLECTS })
-    return _function_decorator(*args, **params)
+    return _function_decorator(args, kwargs, { 'output_method' : \
+    CascadingRecordProducerWrapper.OutputMethod.COLLECTS })
 
 
-def yields(*args, **kwargs):
-    """
-    The function is a generator that 'yield's output tuples, in the pythonic
-    sense.
-
-    PyCascading considers this function a generator that yields one or more
-    output tuples before returning. If this decorator is not used, the way the
-    function emits tuples is determined automatically (which can be either
-    through yielding several values or returning a single value).
-
-    We can safely yield Nones or not yield anything at all; no output tuples
-    will be emitted in this case.  
-    """
-    params = dict(kwargs)
-    params.update({ 'output_method' : \
-                   CascadingRecordProducerWrapper.OutputMethod.YIELDS })
-    return _function_decorator(*args, **params)
-
-
-def produces_python_list():
+def produces_python_list(*args, **kwargs):
     """The function emits Python lists as tuples.
 
     These will be converted by PyCascading to Cascading Tuples, so this impacts
-    performance.
+    performance somewhat.
     """
-    return _function_decorator({ 'output_type' : \
+    return _function_decorator(args, kwargs, { 'output_type' : \
     CascadingRecordProducerWrapper.OutputType.PYTHON_LIST })
 
 
-def produces_tuples():
+def produces_tuples(*args, **kwargs):
     """The function emits native Cascading Tuples or TupleEntrys.
 
     No conversion takes place so this is a fast way to add tuples to the
     output.
     """
-    params = dict(kwargs)
-    params.update({ 'output_type' : \
-                   CascadingRecordProducerWrapper.OutputType.TUPLE })
-    return _function_decorator(*args, **params)
+    return _function_decorator(args, kwargs, { 'output_type' : \
+    CascadingRecordProducerWrapper.OutputType.TUPLE })
 
 
-def filter(*args, **kwargs):
+def udf_filter(*args, **kwargs):
     """This makes the function a filter.
 
     The function should return 'true' for each input tuple that should stay
-    in the output stream, and 'false' when it needs to be filtered out.
+    in the output stream, and 'false' if it is to be removed.
 
-    IMPORTANT: this behavior is the opposite of what Cascading expects!
+    IMPORTANT: this behavior is the opposite of what Cascading expects, but
+    similar to how the Python filter works!
 
     Note that the same effect can be attained by a map that returns the tuple
     itself or None if it should be filtered out.
     """
-    params = dict(kwargs)
-    params.update({ 'type' : 'filter' })
-    return _function_decorator(*args, **params)
+    return _function_decorator(args, kwargs, { 'type' : 'filter' })
 
 
-def map(*args, **kwargs):
+def udf_map(*args, **kwargs):
     """The function decorated with this emits output tuples for each input one.
 
     The function is called for all the tuples in the input stream as happens
     in a Cascading Each. The function input tuple is passed in to the function
     as the first parameter and is a native Cascading TupleEntry unless the
-    python_list_expected() or python_dict_expected() decorators are also used.
+    python_list_expected or python_dict_expected decorators are also used.
 
-    If collects_output() is used, the 2nd parameter is a Cascading
+    If collects_output is used, the 2nd parameter is a Cascading
     TupleEntryCollector to which Tuples or TupleEntrys can be added. Otherwise,
     the function may return an output tuple or yield any number of tuples if
     it is a generator.
@@ -218,15 +220,13 @@ def map(*args, **kwargs):
     Arguments:
     produces -- a list of output field names
     """
-    params = dict(kwargs)
-    params.update({ 'type' : 'map' })
-    return _function_decorator(*args, **params)
+    return _function_decorator(args, kwargs, { 'type' : 'map' })
 
 
-def reduce(*args, **kwargs):
-    """The function decorated with reduce takes a group and emits aggregates.
+def udf_buffer(*args, **kwargs):
+    """The function decorated with this takes a group and emits aggregates.
 
-    A reduce function must follow a Cascading Every operation, which comes
+    A udf_buffer function must follow a Cascading Every operation, which comes
     after a GroupBy. The function will be called for each grouping on a
     different reducer. The first parameter passed to the function is the
     value of the grouping field for this group, and the second is an iterator
@@ -245,31 +245,15 @@ def reduce(*args, **kwargs):
 
     See http://groups.google.com/group/cascading-user/browse_thread/thread/f5e5f56f6500ed53/f55fdd6bba399dcf?lnk=gst&q=scope#f55fdd6bba399dcf
     """
-    params = dict(kwargs)
-    params.update({ 'type' : 'reduce' })
-    return _function_decorator(*args, **params)
+    return _function_decorator(args, kwargs, { 'type' : 'buffer' })
 
-
-def udf(*args, **kwargs):
-    params = dict(kwargs)
-    return _function_decorator(*args, **params)
-    produces = None
-    if len(args) == 1 and inspect.isroutine(args[0]):
-        # We used the decorator without ()s, the first argument is the function
-        return _function_decorator({ 'type' : 'auto' }, function=args[0])
-    else:
-        return _function_decorator({ 'type' : 'auto', 'produces' : produces })
 
 def unwrap(*args, **kwargs):
     """Unwraps the tuple into function parameters before calling the function.
 
     This is not implemented on the Java side yet.
     """
-    params = dict(kwargs)
-    params.update({ 'parameters' : 'unwrap' })
-    return _function_decorator(*args, **params)
+    return _function_decorator(args, kwargs, { 'parameters' : 'unwrap' })
 
 def tuplein(*args, **kwargs):
-    params = dict(kwargs)
-    params.update({ 'parameters' : 'tuple' })
-    return _function_decorator(*args, **params)
+    return _function_decorator(args, kwargs, { 'parameters' : 'tuple' })
