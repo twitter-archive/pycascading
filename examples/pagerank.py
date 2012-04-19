@@ -152,7 +152,7 @@ def main():
     os.system('cat %s/.pycascading_header %s/part*' % (pr_input, pr_input))
 
     print 'The test values:'
-    test_pr = test('pycascading_data/graph.txt', d, iterations)
+    test_pr = test(graph_file, d, iterations)
     print 'node\tpagerank'
     for n in sorted(test_pr.iterkeys()):
         print '%s\t%g' % (n, test_pr[n])
