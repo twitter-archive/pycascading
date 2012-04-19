@@ -59,15 +59,6 @@ def expand_path_with_home(output_folder):
     return output_folder
 
 
-class _FlowHead(Operation):
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def _create_with_parent(self, parent):
-        return com.twitter.pycascading.FlowHead(random_pipe_name('fhead'), \
-                                                parent.get_assembly())
-
-
 class Flow(object):
 
     """Define sources and sinks for the flow.

@@ -42,6 +42,8 @@ from pycascading.decorators import *
 from pycascading.pipe import *
 from pycascading.tap import *
 from pycascading.operators import *
+from pycascading.each import *
+from pycascading.every import *
 
 # Import Java basic types for conversions
 from java.lang import Integer, Long, Float, Double, String

@@ -21,9 +21,6 @@ Each operation applies an UDF to each tuple seen in the stream.
 
 Exports the following:
 Pipe
-Apply
-Every
-GroupBy
 CoGroup
 Join
 OuterJoin
@@ -43,9 +40,8 @@ import cascading.pipe
 import cascading.tuple
 import cascading.operation
 import cascading.pipe.cogroup
-from com.twitter.pycascading import CascadingFunctionWrapper, \
-CascadingFilterWrapper, CascadingAggregatorWrapper, CascadingBufferWrapper, \
-CascadingBaseOperationWrapper, CascadingRecordProducerWrapper
+from com.twitter.pycascading import CascadingBaseOperationWrapper, \
+CascadingRecordProducerWrapper
 
 import serializers
 
@@ -110,7 +106,7 @@ def random_pipe_name(prefix):
     return name
 
 
-def _wrap_function(function, casc_function_type):
+def wrap_function(function, casc_function_type):
     """Wrap a Python function into a Serializable and callable Java object.
     This wrapping is necessary as Cascading serializes the job pipeline before
     it sends the job to the workers. We need to in essence reconstruct the
@@ -137,7 +133,7 @@ def _wrap_function(function, casc_function_type):
         fw = casc_function_type(*args)
         function = decorators['function']
         fw.setConvertInputTuples(decorators['input_conversion'])
-        if decorators['type'] in set(['map', 'reduce', 'auto']):
+        if decorators['type'] in set(['map', 'buffer', 'auto']):
             fw.setOutputMethod(decorators['output_method'])
             fw.setOutputType(decorators['output_type'])
         fw.setContextArgs(decorators['args'])
@@ -198,11 +194,14 @@ class Chainable(_Stackable):
     def __or__(self, other):
         result = Chainable()
         if isinstance(other, cascading.operation.Aggregator):
-            other = Every(aggregator=other)
+            import every
+            other = every.Every(aggregator=other)
         elif isinstance(other, cascading.operation.Function):
-            other = Apply(other)
+            import each
+            other = each.Apply(other)
         elif isinstance(other, cascading.operation.Filter):
-            other = Apply(other)
+            import each
+            other = each.Apply(other)
         elif inspect.isroutine(other):
             other = DecoratedFunction.decorate_function(other)
         if isinstance(other, Chainable):
@@ -302,23 +301,27 @@ class DecoratedFunction(Operation):
         """
         Use the appropriate operation when the function is used in the pipe.
         """
-        if self.decorators['type'] == 'auto':
+        my_type = self.decorators['type']
+        if my_type == 'auto':
             # Determine the type of function automatically based on the parent
             if isinstance(parent, Chainable) and \
             isinstance(parent.get_assembly(), cascading.pipe.GroupBy):
-                self.decorators['type'] = 'reduce'
+                my_type = 'buffer'
             else:
                 raise Exception('Function was not decorated, and I cannot ' \
                                 'decide if it is a map or a filter')
-        if self.decorators['type'] == 'map':
-            return Apply(self)._create_with_parent(parent)
-        elif self.decorators['type'] == 'filter':
-            return Filter(self)._create_with_parent(parent)
-        elif self.decorators['type'] == 'reduce':
-            return Every(buffer=self)._create_with_parent(parent)
+        if my_type == 'map':
+            import each
+            return each.Apply(self)._create_with_parent(parent)
+        elif my_type == 'filter':
+            import pycascading.each
+            return pycascading.each.Filter(self)._create_with_parent(parent)
+        elif my_type == 'buffer':
+            import every
+            return every.Every(buffer=self)._create_with_parent(parent)
         else:
             raise Exception('Function was not annotated with ' \
-                            '@map(), @filter(), or @reduce()')
+                            '@udf_map(), @udf_filter(), or @udf_buffer()')
 
     def _wrap_argument_functions(self, args, kwargs):
         """
@@ -340,8 +343,11 @@ class DecoratedFunction(Operation):
 
     @classmethod
     def decorate_function(cls, function):
+        """Return a DecoratedFunction with the default parameters set."""
         dff = DecoratedFunction()
+        # This is the user-defined Python function
         dff.decorators['function'] = function
+        # If it's used as an Each, Every, or Filter function
         dff.decorators['type'] = 'auto'
         dff.decorators['input_conversion'] = \
         CascadingBaseOperationWrapper.ConvertInputTuples.NONE
@@ -352,218 +358,6 @@ class DecoratedFunction(Operation):
         dff.decorators['args'] = None
         dff.decorators['kwargs'] = None
         return dff
-
-
-class _Each(Operation):
-
-    """The equivalent of Each in Cascading.
-
-    We need to wrap @maps and @filters with different Java classes, but
-    the constructors for Each are built similarly. This class provides this
-    functionality.
-    """
-
-    def __init__(self, function_type, *args):
-        """Build the Each constructor for the Python function.
-
-        Arguments:
-        function_type -- CascadingFunctionWrapper or CascadingFilterWrapper,
-            whether we are calling Each with a function or filter
-        *args -- the arguments passed on to Cascading Each
-        """
-        Operation.__init__(self)
-
-        self.__function = None
-        # The default argument selector is Fields.ALL (per Cascading sources
-        # for Operator.java)
-        self.__argument_selector = None
-        # The default output selector is Fields.RESULTS (per Cascading sources
-        # for Operator.java)
-        self.__output_selector = None
-
-        if len(args) == 1:
-            self.__function = args[0]
-        elif len(args) == 2:
-            (self.__argument_selector, self.__function) = args
-        elif len(args) == 3:
-            (self.__argument_selector, self.__function,
-             self.__output_selector) = args
-        else:
-            raise Exception('The number of parameters to Apply/Filter ' \
-                            'should be between 1 and 3')
-        # This is the Cascading Function type
-        self.__function = _wrap_function(self.__function, function_type)
-
-    def _create_with_parent(self, parent):
-        args = []
-        if self.__argument_selector:
-            args.append(coerce_to_fields(self.__argument_selector))
-        args.append(self.__function)
-        if self.__output_selector:
-            args.append(coerce_to_fields(self.__output_selector))
-        # We need to put another Pipe after the Each since otherwise
-        # joins may not work as the names of pipes apparently have to be
-        # different for Cascading.
-        each = cascading.pipe.Each(parent.get_assembly(), *args)
-        return cascading.pipe.Pipe(random_pipe_name('each'), each)
-
-
-class Apply(_Each):
-    """Apply the given user-defined function to each tuple in the stream.
-
-    The corresponding class in Cascading is Each called with a Function.
-    """
-    def __init__(self, *args):
-        _Each.__init__(self, CascadingFunctionWrapper, *args)
-
-
-class Filter(_Each):
-    """Filter the tuple stream through the user-defined function.
-
-    The corresponding class in Cascading is Each called with a Filter.
-    """
-    def __init__(self, *args):
-        _Each.__init__(self, CascadingFilterWrapper, *args)
-
-
-class Every(Operation):
-
-    """Apply an operation to a group of tuples.
-
-    This operation is similar to Apply, but can only follow a GroupBy or
-    CoGroup. It runs a Cascading Aggregator or Buffer on every grouping.
-    Native Java aggregators or buffers may be used, and also PyCascading
-    @reduces.
-
-    By default the tuples contain only the values in a group, but not the
-    grouping field. This can be had from the group first parameter.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Create a Cascading Every pipe.
-
-        Keyword arguments:
-        aggregator -- a Cascading aggregator (only either aggregator or buffer
-            should be used)
-        buffer -- a Cascading Buffer or a PyCascading @reduce function
-        output_selector -- the outputSelector parameter for Cascading
-        argument_selector -- the argumentSelector parameter for Cascading
-        assertion_level -- the assertionLevel parameter for Cascading
-        assertion -- the assertion parameter for Cascading
-        """
-        Operation.__init__(self)
-        self.__args = args
-        self.__kwargs = kwargs
-
-    def __create_args(self,
-                      pipe=None,
-                      aggregator=None, output_selector=None,
-                      assertion_level=None, assertion=None,
-                      buffer=None,
-                      argument_selector=None):
-        args = []
-        args.append(pipe.get_assembly())
-        if argument_selector:
-            args.append(coerce_to_fields(argument_selector))
-        if aggregator:
-            # for now we assume it's a Cascading aggregator straight
-            args.append(_wrap_function(aggregator, CascadingAggregatorWrapper))
-            if output_selector:
-                args.append(coerce_to_fields(output_selector))
-        if assertion_level:
-            args.append(assertion_level)
-            args.append(assertion)
-        if buffer:
-            args.append(_wrap_function(buffer, CascadingBufferWrapper))
-            if output_selector:
-                args.append(coerce_to_fields(output_selector))
-        return args
-
-    def _create_with_parent(self, parent):
-        # TODO: make output_selector=Fields.RESULTS default so that with a
-        # reduce we don't have to define an Every every time if we want to do that
-        if 'argument_selector' not in self.__kwargs:
-            self.__kwargs['argument_selector'] = cascading.tuple.Fields.ALL
-        if 'output_selector' not in self.__kwargs:
-            if 'aggregator' in self.__kwargs:
-                # In the case of aggregators, we want to return both the
-                # groupings and the results
-                self.__kwargs['output_selector'] = \
-                cascading.tuple.Fields.ALL
-            else:
-                self.__kwargs['output_selector'] = \
-                cascading.tuple.Fields.RESULTS
-        args = self.__create_args(pipe=parent, **self.__kwargs)
-        return cascading.pipe.Every(*args)
-
-
-class GroupBy(Operation):
-
-    """GroupBy first merges the given pipes, then groups by the fields given.
-
-    This class does the same as the corresponding Cascading GroupBy.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Create a Cascading Every pipe.
-
-        Arguments:
-        args[0] -- the fields on which to group
-
-        Keyword arguments:
-        group_name -- the groupName parameter for Cascading
-        group_fields -- the fields on which to group
-        sort_fields -- the sortFields parameter for Cascading
-        reverse_order -- the reverseOrder parameter for Cascading
-        lhs_pipe -- the lhsPipe parameter for Cascading
-        rhs_pipe -- the rhsPipe parameter for Cascading
-        """
-        Operation.__init__(self)
-        self.__args = args
-        self.__kwargs = kwargs
-
-    def __create_args(self,
-                      group_name=None,
-                      pipes=None, group_fields=None, sort_fields=None,
-                      reverse_order=None,
-                      pipe=None,
-                      lhs_pipe=None, rhs_pipe=None):
-        # We can use an unnamed parameter only for group_fields
-        if self.__args:
-            group_fields = coerce_to_fields(self.__args[0])
-        args = []
-        if group_name:
-            args.append(group_name)
-        if pipes:
-            args.append([p.get_assembly() for p in pipes])
-            if group_fields:
-                args.append(coerce_to_fields(group_fields))
-                if sort_fields:
-                    args.append(coerce_to_fields(sort_fields))
-                    if reverse_order:
-                        args.append(reverse_order)
-        elif pipe:
-            args.append(pipe.get_assembly())
-            if group_fields:
-                args.append(coerce_to_fields(group_fields))
-                if sort_fields:
-                    args.append(coerce_to_fields(sort_fields))
-                if reverse_order:
-                    args.append(reverse_order)
-        elif lhs_pipe:
-            args.append(lhs_pipe.get_assembly())
-            args.append(rhs_pipe.get_assembly())
-            args.append(coerce_to_fields(group_fields))
-        return args
-
-    def _create_with_parent(self, parent):
-        if isinstance(parent, list):
-            # We're chaining with a _Stackable object
-            args = self.__create_args(pipes=parent, **self.__kwargs)
-        else:
-            # We're chaining with a Chainable object
-            args = self.__create_args(pipe=parent, **self.__kwargs)
-        return cascading.pipe.GroupBy(*args)
 
 
 class CoGroup(Operation):
