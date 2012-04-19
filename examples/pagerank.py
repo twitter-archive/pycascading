@@ -13,26 +13,14 @@
 # limitations under the License.
 #
 
-"""Calculates PageRank for a given graph."""
+"""Calculates PageRank for a given graph.
+
+We assume that there are no dangling pages with no outgoing links.
+"""
 
 
+import os
 from pycascading.helpers import *
-
-
-def num_nodes(graph_source):
-    flow = Flow()
-
-    def _(tuple):
-        for i in (0, 1):
-            yield [tuple.get(i)]
-    p = flow.source(graph_source) | map_replace(_, 'node') | \
-    native.unique(Fields.ALL)
-
-    def _(tuple):
-        yield [1]
-    p | map_to(_) | group_by(Fields.ALL) | native.count() | \
-    flow.tsv_sink('pycascading_data/out')
-    flow.run(num_reducers=1)
 
 
 def test(graph_file, d, iterations):
@@ -53,32 +41,40 @@ def test(graph_file, d, iterations):
         pagerank[source] = 1.0
         pagerank[dest] = 1.0
     file.close()
+#    dangling_nodes = set()
+#    for n in pagerank:
+#        if n not in out_degree:
+#            dangling_nodes.add(n)
     old_pr = pagerank
     new_pr = {}
     for iteration in xrange(0, iterations):
+#        inner_product = sum([old_pr[n] for n in dangling_nodes])
         for node in old_pr:
-            new_pr[node] = 1 - d
+#            new_pr[node] = (1 - d) + d * inner_product
+            new_pr[node] = (1 - d)
             try:
-                new_pr[node] += d * sum([old_pr[n] / out_degree[n] for n in in_links[node]])
+                new_pr[node] += \
+                d * sum([old_pr[n] / out_degree[n] for n in in_links[node]])
             except KeyError:
                 pass
         tmp = old_pr
         old_pr = new_pr
         new_pr = tmp
-    print old_pr
+    return old_pr
+
 
 def main():
-    d = 0.5
+    # The damping factor
+    d = 0.85
+    # The number of iterations
     iterations = 5
-    test('pycascading_data/graph.txt', d, iterations)
-    import sys
-    sys.exit()
+
+    # The directed, unweighted graph in a space-separated file, in
+    # <source_node> <destination_node> format
+    graph_file = 'pycascading_data/graph.txt'
 
     graph_source = Hfs(TextDelimited(Fields(['from', 'to']), ' ',
-                                     [String, String]),
-                       'pycascading_data/graph.txt')
-#    num_nodes(graph_source)
-#    return
+                                     [String, String]), graph_file)
 
     out_links_file = 'pycascading_data/out/pagerank/out_links'
     pr_values_1 = 'pycascading_data/out/pagerank/iter1'
@@ -156,4 +152,11 @@ def main():
 
         flow.run(num_reducers=1)
 
-    print 'PageRanks generated into folder:', pr_input
+    print 'Results from PyCascading:', pr_input
+    os.system('cat %s/.pycascading_header %s/part*' % (pr_input, pr_input))
+
+    print 'The test values:'
+    test_pr = test('pycascading_data/graph.txt', d, iterations)
+    print 'node\tpagerank'
+    for n in sorted(test_pr.iterkeys()):
+        print '%s\t%g' % (n, test_pr[n])
