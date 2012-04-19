@@ -24,6 +24,7 @@ from pycascading.helpers import *
 
 
 def test(graph_file, d, iterations):
+    """This is the Python implementation."""
     in_links = {}
     out_degree = {}
     pagerank = {}
@@ -64,6 +65,7 @@ def test(graph_file, d, iterations):
 
 
 def main():
+    """The PyCascading job."""
     # The damping factor
     d = 0.85
     # The number of iterations
