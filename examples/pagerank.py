@@ -42,16 +42,10 @@ def test(graph_file, d, iterations):
         pagerank[source] = 1.0
         pagerank[dest] = 1.0
     file.close()
-#    dangling_nodes = set()
-#    for n in pagerank:
-#        if n not in out_degree:
-#            dangling_nodes.add(n)
     old_pr = pagerank
     new_pr = {}
     for iteration in xrange(0, iterations):
-#        inner_product = sum([old_pr[n] for n in dangling_nodes])
         for node in old_pr:
-#            new_pr[node] = (1 - d) + d * inner_product
             new_pr[node] = (1 - d)
             try:
                 new_pr[node] += \
