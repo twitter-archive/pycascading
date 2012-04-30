@@ -13,7 +13,11 @@
 # limitations under the License.
 #
 
-"""Example demonstrating the use of predefined subassemblies."""
+"""Example demonstrating the use of predefined subassemblies.
+
+Useful aggregators, subassemblies, pipes available in Cascading are imported
+into PyCascading by native.py
+"""
 
 from pycascading.helpers import *
 
@@ -26,6 +30,6 @@ def main():
     output = flow.tsv_sink('pycascading_data/out')
 
     # This selects the distinct records considering all fields
-    repeats | SubAssembly(Unique, Fields.ALL) | output
+    repeats | native.unique(Fields.ALL) | output
 
     flow.run()

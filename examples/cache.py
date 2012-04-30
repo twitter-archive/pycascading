@@ -22,14 +22,17 @@ different separators: after the first run, the checkpointed state will be
 used for subsequent runs.
 
 This is useful if we want to repeatedly run the script with modifications
-to parts that do not change the cached results. 
+to parts that do not change the cached results.
+
+For this script, the first run will have two MR jobs, but any subsequent runs
+will only have one, as the
 """
 
 import sys
 from pycascading.helpers import *
 
 
-@map(produces=['line'])
+@udf_map
 def find_lines_with_beginning(tuple, first_char):
     try:
         if tuple.get(1)[0] == first_char:
@@ -38,7 +41,7 @@ def find_lines_with_beginning(tuple, first_char):
         pass
 
 
-@reduce(produces=['result'])
+@udf_buffer
 def concat_all(group, tuples, separator):
     out = ''
     for tuple in tuples:
@@ -62,11 +65,11 @@ def main():
     # Select the lines beginning with 'A', and save this intermediate result
     # in the cache so that we can call the script several times with
     # different separator characters
-    p = input | find_lines_with_beginning('A')
+    p = input | map_replace(find_lines_with_beginning('A'), 'line')
     # Checkpoint the results from 'p' into a cache folder named 'line_begins'
     # The caches are in the user's HDFS folder, under pycascading.cache/
     p = flow.cache('line_begins') | p
     # Everything goes to one reducer
-    p | GroupBy(Fields.VALUES) | concat_all(sys.argv[1]) | output
+    p | group_by(Fields.VALUES, concat_all(sys.argv[1]), 'result') | output
 
     flow.run(num_reducers=1)

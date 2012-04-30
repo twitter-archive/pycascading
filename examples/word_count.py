@@ -18,7 +18,7 @@
 from pycascading.helpers import *
 
 
-@map(produces=['word'])
+@udf_map(produces=['word'])
 def split_words(tuple):
     """The function to split the line and return several new tuples.
 
@@ -33,11 +33,11 @@ def split_words(tuple):
 
 def main():
     flow = Flow()
-    # The TextLine() scheme produces tuples where the first field is the line
-    # number, and the second is the line as a string.
+    # The TextLine() scheme produces tuples where the first field is the 
+    # offset of the line in the file, and the second is the line as a string.
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
 
-    input | split_words | GroupBy('word') | Count() | output
+    input | split_words | group_by('word', native.count()) | output
 
-    flow.run(num_reducers=1)
+    flow.run(num_reducers=2)

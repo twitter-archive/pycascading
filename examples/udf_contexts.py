@@ -13,26 +13,13 @@
 # limitations under the License.
 #
 
-"""Example showing how to pass in a 'global' context to UDFs.
+"""Example showing how to pass in parameters to UDFs.
 
-The context is serialized and shipped to where the UDFs are executed. This is
-a way also to perform replicated joins on constant data.
+The context is serialized and shipped to where the UDFs are executed. A use
+case for example is to perform replicated joins on constant data.
 """
 
 from pycascading.helpers import *
-
-
-@filter()
-def starts_with_letters(tuple, letters):
-    """Only let tuples through whose second field starts with a given letter.
-
-    The set of acceptable initial letters is passed in the letters parameter,
-    and is defined at the time when we build the flow.
-    """
-    try:
-        return tuple.get(1)[0].upper() in letters
-    except:
-        return False
 
 
 def main():
@@ -40,7 +27,19 @@ def main():
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
 
-    # Retain only lines that start with an 'A' or 'T'
-    input | starts_with_letters(set(['A', 'T'])) | SelectFields('line') | output
+    @udf_filter
+    def starts_with_letters(tuple, field, letters):
+        """Only let tuples through whose second field starts with a given letter.
 
-    flow.run()
+        The set of acceptable initial letters is passed in the letters parameter,
+        and is defined at the time when we build the flow.
+        """
+        try:
+            return tuple.get(field)[0].upper() in letters
+        except:
+            return False
+
+    # Retain only lines that start with an 'A' or 'T'
+    input | retain('line') | starts_with_letters(0, set(['A', 'T'])) | output
+
+    flow.run(num_reducers=2)

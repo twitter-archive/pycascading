@@ -36,6 +36,6 @@ def main():
                           'pycascading_data/rhs.txt'))
     output = flow.tsv_sink('pycascading_data/out')
 
-    (stream1 & stream2) | GroupBy() | output
+    (stream1 & stream2) | group_by() | output
 
-    flow.run()
+    flow.run(num_reducers=1)

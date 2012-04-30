@@ -30,7 +30,7 @@ plans to use more efficient serializers in the future.
 from pycascading.helpers import *
 
 
-@map(produces=['col1', 'col2', 'info'])
+@udf_map(produces=['col1', 'col2', 'info'])
 def add_python_data(tuple):
     """This function returns a Python data structure as well."""
     return [ tuple.get(0), tuple.get(1), [ 'first', { 'key' : 'value' } ]]
@@ -45,8 +45,8 @@ def main():
                                         [Integer, String]),
                           'pycascading_data/rhs.txt'))
 
-    ((lhs | add_python_data) & rhs) | Join(['col1', 'col1'],
+    ((lhs | add_python_data()) & rhs) | inner_join(['col1', 'col1'],
         declared_fields=['lhs1', 'lhs2', 'info', 'rhs1', 'rhs2']) | \
         flow.tsv_sink('pycascading_data/out')
 
-    flow.run()
+    flow.run(num_reducers=2)

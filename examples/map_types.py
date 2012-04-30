@@ -13,7 +13,11 @@
 # limitations under the License.
 #
 
-"""Example illustrating the different types of map operations."""
+"""Example illustrating the different types of map operations.
+
+In the output folders check the .pycascading_types and .pycascading_header
+files to see what the names of the fields were when the pipes were sinked.
+"""
 
 
 from pycascading.helpers import *
@@ -35,31 +39,32 @@ def main():
             yield [word]
 
     # This will create an output with one field called 'word', as the UDF
-    # was declared with that
+    # was declared with a 'produces'
     # In this case the swap swaps out the whole input tuple with the output
-    input | MapSwap(decorated_udf) | \
+    input | map_replace(decorated_udf) | \
     flow.tsv_sink(out_folder + 'decorated_udf')
 
     # This will create an output with one unnamed field, but otherwise the
     # same as the previous one
-    input | MapSwap(undecorated_udf) | \
+    input | map_replace(undecorated_udf) | \
     flow.tsv_sink(out_folder + 'undecorated_udf')
 
     # This will only replace the first ('line') field with the output of
     # the map, but 'offset' will be retained
     # Note that once we add an unnamed field, all field names will be lost
-    input | MapSwap(1, undecorated_udf) | \
+    input | map_replace(1, undecorated_udf) | \
     flow.tsv_sink(out_folder + 'undecorated_udf_with_input_args')
 
     # This will create one field only, 'word', just like the first example
-    input | MapSwap(undecorated_udf, 'word') | \
+    input | map_replace(undecorated_udf, 'word') | \
     flow.tsv_sink(out_folder + 'undecorated_udf_with_output_fields')
 
     # This one will add the new column, 'word', to all lines
-    input | MapAdd(decorated_udf) | \
+    input | map_add(decorated_udf) | \
     flow.tsv_sink(out_folder + 'decorated_udf_all')
 
-    input | MapAdd(1, undecorated_udf, 'word') | \
+    # This produces the same output as the previous example
+    input | map_add(1, undecorated_udf, 'word') | \
     flow.tsv_sink(out_folder + 'undecorated_udf_all')
 
     flow.run(num_reducers=1)

@@ -13,23 +13,9 @@
 # limitations under the License.
 #
 
-"""
-Contrived example showing that you can pass functions as args to a UDF.
-Also shows how to use keyword args (just the way it's expected).
-
-Thanks to ebernhardson.
-"""
+"""Simple word count example with reverse sorting of the words by frequency."""
 
 from pycascading.helpers import *
-
-
-def word_count_callback(value):
-    return len(value.split())
-
-
-@udf_map
-def word_count(tuple, inc, second_inc, callback=None):
-    return [inc + second_inc + callback(tuple.get(1)), tuple.get(1)]
 
 
 def main():
@@ -37,8 +23,16 @@ def main():
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
 
-    p = input | map_replace(
-        word_count(100, second_inc=200, callback=word_count_callback),
-        ['word_count', 'line']) | output
+    @udf_map
+    def split_words(tuple):
+        for word in tuple.get(1).split():
+            yield [word]
 
-    flow.run(num_reducers=1)
+    input | \
+    map_replace(split_words, 'word') | \
+    group_by('word') | \
+    native.count() | \
+    group_by(Fields.VALUES, sort_fields=['count'], reverse_order=True) | \
+    output
+
+    flow.run(num_reducers=5)

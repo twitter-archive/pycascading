@@ -18,13 +18,12 @@
 We assume that there are no dangling pages with no outgoing links.
 """
 
-
 import os
 from pycascading.helpers import *
 
 
 def test(graph_file, d, iterations):
-    """This is the Python implementation."""
+    """This is the Python implementation of PageRank."""
     in_links = {}
     out_degree = {}
     pagerank = {}
@@ -125,8 +124,8 @@ def main():
         @udf
         def incremental_pagerank(tuple, d):
             yield [d * tuple.get('from_pagerank') / tuple.get('from_out_degree')]
-        p = p | \
-        map_replace(['from', 'from_pagerank', 'from_out_degree'], incremental_pagerank(d), 'incr_pagerank') | \
+        p = p | map_replace(['from', 'from_pagerank', 'from_out_degree'],
+                            incremental_pagerank(d), 'incr_pagerank') | \
         rename('to', 'node') | retain('node', 'incr_pagerank')
 
         # Add the constant jump probability to all the pageranks that come
