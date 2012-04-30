@@ -308,8 +308,9 @@ class DecoratedFunction(Operation):
             isinstance(parent.get_assembly(), cascading.pipe.GroupBy):
                 my_type = 'buffer'
             else:
-                raise Exception('Function was not decorated, and I cannot ' \
-                                'decide if it is a map or a filter')
+                raise Exception('Function was not decorated with @udf_map or' \
+                                ' @udf_filter, and I cannot decide if it is' \
+                                ' a map or a filter')
         if my_type == 'map':
             import each
             return each.Apply(self)._create_with_parent(parent)
