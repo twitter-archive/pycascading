@@ -150,6 +150,10 @@ public class CascadingBaseOperationWrapper extends BaseOperation implements Seri
 
     // We set the Python variable "map_input_file" to the path to the mapper
     // input file
+    // But this is unfortunately null with the old Hadoop API, see
+    // https://groups.google.com/group/cascading-user/browse_thread/thread/d65960ad738bebd4/f343e91625cf3c07
+    // http://lucene.472066.n3.nabble.com/map-input-file-in-20-1-td961619.html
+    // https://issues.apache.org/jira/browse/MAPREDUCE-2166
     interpreter.set("map_input_file", jobConf.get("map.input.file"));
 
     // We set the Python variable "jobconf" to the MR jobconf

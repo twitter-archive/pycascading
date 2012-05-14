@@ -54,16 +54,17 @@ copied to the remote server and submitted together with the job to Hadoop.
 Options:
    -h                Show this message.
 
-   -m                Also deploy the PyCascading master jar before submitting
-                     the job.
+   -m                Also deploy the PyCascading master archives before submitting
+                     the job. The master archives must be on the Hadoop server
+                     before a job can be run.
 
    -f <file>         Copy file to the server together with main_script, but
-                     do not bundle it into the Hadoop jar for submission. This
-                     option may be repeated several times for multiple files.
-                     File names cannot start with a dot.
+                     do not bundle it up for submission. This option may be
+                     repeated several times for multiple files. File names
+                     cannot start with a dot.
 
    -s <server>       The name of the remote server where Hadoop is installed,
-                     and the PyCascading jar should be deployed to.
+                     and the PyCascading scripts should be deployed to.
 
    -o <ssh_options>  Additional options for SSH (such as private key, etc.).
                      ssh_options is one string enclosed by "s or 's, even if
