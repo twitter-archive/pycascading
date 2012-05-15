@@ -75,7 +75,9 @@ jython_libs='jython.jar'
 add2classpath "$jython_libs" "$jython"
 
 # Cascading jars
-cascading_libs='cascading-core-*.jar cascading-hadoop-*.jar lib/cascading-core/*.jar'
+# We have to exclude SLF4J that comes with Cascading, otherwise there's a
+# conflict with the SLF4J from the Hadoop distribution
+cascading_libs='cascading-core-*.jar cascading-hadoop-*.jar lib/cascading-core/[jr]*.jar'
 add2classpath "$cascading_libs" "$cascading"
 
 # Hadoop jars

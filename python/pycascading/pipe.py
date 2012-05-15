@@ -39,7 +39,6 @@ import types, inspect, pickle
 import cascading.pipe
 import cascading.tuple
 import cascading.operation
-import cascading.pipe.cogroup
 from com.twitter.pycascading import CascadingBaseOperationWrapper, \
 CascadingRecordProducerWrapper
 

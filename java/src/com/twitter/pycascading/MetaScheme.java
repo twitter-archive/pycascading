@@ -27,7 +27,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.RecordReader;
 
-import cascading.flow.hadoop.HadoopFlowProcess;
+import cascading.flow.FlowProcess;
 import cascading.scheme.Scheme;
 import cascading.scheme.SinkCall;
 import cascading.scheme.SourceCall;
@@ -45,8 +45,7 @@ import cascading.tuple.TupleEntry;
  * 
  * @author Gabor Szabo
  */
-public class MetaScheme extends
-        Scheme<HadoopFlowProcess, JobConf, RecordReader, OutputCollector, Object[], Object[]> {
+public class MetaScheme extends Scheme<JobConf, RecordReader, OutputCollector, Object[], Object[]> {
   private static final long serialVersionUID = 8194175541999063797L;
 
   private static final String schemeFileName = ".pycascading_scheme";
@@ -109,25 +108,27 @@ public class MetaScheme extends
   }
 
   @Override
-  public void sourceConfInit(HadoopFlowProcess process, Tap tap, JobConf conf) {
+  public void sourceConfInit(FlowProcess<JobConf> process,
+          Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
     // We're returning the original storage scheme, so this should not be called
     // ever.
   }
 
   @Override
-  public boolean source(HadoopFlowProcess flowProcess, SourceCall<Object[], RecordReader> sourceCall)
-          throws IOException {
+  public boolean source(FlowProcess<JobConf> flowProcess,
+          SourceCall<Object[], RecordReader> sourceCall) throws IOException {
     // This should never be called.
     return false;
   }
 
   @Override
-  public void sinkConfInit(HadoopFlowProcess process, Tap tap, JobConf conf) {
+  public void sinkConfInit(FlowProcess<JobConf> process,
+          Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
     scheme.sinkConfInit(process, tap, conf);
   }
 
   @Override
-  public void sink(HadoopFlowProcess flowProcess, SinkCall<Object[], OutputCollector> sinkCall)
+  public void sink(FlowProcess<JobConf> flowProcess, SinkCall<Object[], OutputCollector> sinkCall)
           throws IOException {
     OutputCollector outputCollector = sinkCall.getOutput();
     TupleEntry tupleEntry = sinkCall.getOutgoingEntry();
@@ -166,7 +167,6 @@ public class MetaScheme extends
         }
       } catch (IOException e) {
       }
-
       firstLine = false;
     }
 
@@ -195,5 +195,73 @@ public class MetaScheme extends
       typeFileToWrite = false;
     }
     scheme.sink(flowProcess, sinkCall);
+  }
+
+  // We need to delegate all sink-related calls to
+  @Override
+  public int getNumSinkParts() {
+    return scheme.getNumSinkParts();
+  }
+
+  @Override
+  public Fields getSinkFields() {
+    return scheme.getSinkFields();
+  }
+
+  @Override
+  public Fields getSourceFields() {
+    return scheme.getSourceFields();
+  }
+
+  @Override
+  public String getTrace() {
+    return scheme.getTrace();
+  }
+
+  @Override
+  public boolean isSymmetrical() {
+    return scheme.isSymmetrical();
+  }
+
+  @Override
+  public void presentSinkFields(FlowProcess<JobConf> flowProcess, Tap tap, Fields fields) {
+    scheme.presentSinkFields(flowProcess, tap, fields);
+  }
+
+  @Override
+  public void presentSourceFields(FlowProcess<JobConf> flowProcess, Tap tap, Fields fields) {
+    scheme.presentSourceFields(flowProcess, tap, fields);
+  }
+
+  @Override
+  public Fields retrieveSinkFields(FlowProcess<JobConf> flowProcess, Tap tap) {
+    return scheme.retrieveSinkFields(flowProcess, tap);
+  }
+
+  @Override
+  public void setNumSinkParts(int numSinkParts) {
+    scheme.setNumSinkParts(numSinkParts);
+  }
+
+  @Override
+  public void setSinkFields(Fields sinkFields) {
+    scheme.setSinkFields(sinkFields);
+  }
+
+  @Override
+  public void sinkCleanup(FlowProcess<JobConf> flowProcess,
+          SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
+    scheme.sinkCleanup(flowProcess, sinkCall);
+  }
+
+  @Override
+  public void sinkPrepare(FlowProcess<JobConf> flowProcess,
+          SinkCall<Object[], OutputCollector> sinkCall) throws IOException {
+    scheme.sinkPrepare(flowProcess, sinkCall);
+  }
+
+  @Override
+  public String toString() {
+    return scheme.toString();
   }
 }

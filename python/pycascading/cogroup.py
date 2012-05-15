@@ -19,7 +19,6 @@ __author__ = 'Gabor Szabo'
 
 
 import cascading.pipe
-import cascading.pipe.cogroup
 import cascading.operation
 
 from pycascading.pipe import Operation, coerce_to_fields, _Stackable
@@ -89,7 +88,7 @@ class CoGroup(Operation):
                 else:
                     args.append(None)
                 if joiner is None:
-                    joiner = cascading.pipe.cogroup.InnerJoin()
+                    joiner = cascading.pipe.joiner.InnerJoin()
                 args.append(joiner)
         elif pipe:
             args.append(pipe.get_assembly())
@@ -113,7 +112,7 @@ class CoGroup(Operation):
 
 def inner_join(*args, **kwargs):
     """Shortcut for an inner join."""
-    kwargs['joiner'] = cascading.pipe.cogroup.InnerJoin()
+    kwargs['joiner'] = cascading.pipe.joiner.InnerJoin()
     if not 'declared_fields' in kwargs:
         kwargs['declared_fields'] = None
     return CoGroup(*args, **kwargs)
@@ -121,7 +120,7 @@ def inner_join(*args, **kwargs):
 
 def outer_join(*args, **kwargs):
     """Shortcut for an outer join."""
-    kwargs['joiner'] = cascading.pipe.cogroup.OuterJoin()
+    kwargs['joiner'] = cascading.pipe.joiner.OuterJoin()
     if not 'declared_fields' in kwargs:
         kwargs['declared_fields'] = None
     return CoGroup(*args, **kwargs)
@@ -131,7 +130,7 @@ def left_outer_join(*args, **kwargs):
     """Shortcut for a left outer join."""
     # The documentation says a Cascading RightJoin is a right inner join, but
     # that's not true, it's really an outer join as it should be.
-    kwargs['joiner'] = cascading.pipe.cogroup.LeftJoin()
+    kwargs['joiner'] = cascading.pipe.joiner.LeftJoin()
     if not 'declared_fields' in kwargs:
         kwargs['declared_fields'] = None
     return CoGroup(*args, **kwargs)

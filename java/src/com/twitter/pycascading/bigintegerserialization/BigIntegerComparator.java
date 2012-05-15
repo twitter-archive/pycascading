@@ -23,7 +23,7 @@ import java.util.Comparator;
 import org.apache.hadoop.io.WritableUtils;
 
 import cascading.tuple.StreamComparator;
-import cascading.tuple.hadoop.BufferedInputStream;
+import cascading.tuple.hadoop.io.BufferedInputStream;
 
 /**
  * Cascading in-stream comparator for Java BigIntegers.

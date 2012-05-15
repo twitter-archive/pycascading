@@ -47,7 +47,8 @@ def setup_paths(module_paths):
     cascading_jar = Util.getCascadingJar()
     jython_dir = module_paths[0]
 
-    sys.path.extend((cascading_jar, jython_dir + '/python',
+    sys.path.extend(cascading_jar)
+    sys.path.extend((jython_dir + '/python',
                      jython_dir + '/python/Lib'))
     sys.path.extend(module_paths[1 : ])
 

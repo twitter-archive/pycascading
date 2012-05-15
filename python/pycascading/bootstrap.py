@@ -44,6 +44,7 @@ if __name__ == "__main__":
 
     from com.twitter.pycascading import Util
 
+    # This is a list of jars that Cascading comes in
     cascading_jar = Util.getCascadingJar()
     # This is the folder where Hadoop extracted the jar file for execution
     tmp_dir = Util.getJarFolder()
@@ -52,7 +53,8 @@ if __name__ == "__main__":
 
     # The initial value of sys.path is JYTHONPATH plus whatever Jython appends
     # to it (normally the Python standard libraries the come with Jython)
-    sys.path.extend((cascading_jar, '.', tmp_dir, python_dir + '/python',
+    sys.path.extend(cascading_jar)
+    sys.path.extend(('.', tmp_dir, python_dir + '/python',
                      python_dir + '/python/Lib'))
 
     # Allow the importing of user-installed Jython packages
