@@ -23,6 +23,7 @@ import org.python.core.PySequenceList;
 
 import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
+import cascading.tuple.TupleEntry;
 import cascading.tuple.TupleEntryCollector;
 
 /**
@@ -47,18 +48,15 @@ public class CascadingRecordProducerWrapper extends CascadingBaseOperationWrappe
   // This is what the Python function returns: a Python list or a Cascading
   // tuple, or PyCascading can also figure it out automatically from the first
   // record returned.
+  //
+  // AUTO means that the type of the very first object returned from the
+  // Python @map determines what type we are going to use.
   public enum OutputType {
-    AUTO, PYTHON_LIST, TUPLE
-  }
-
-  // Pass the FlowProcess to the Python function
-  public enum FlowProcessPassIn {
-    YES, NO
+    AUTO, PYTHON_LIST, TUPLE, TUPLEENTRY
   }
 
   protected OutputMethod outputMethod;
   protected OutputType outputType;
-  protected FlowProcessPassIn flowProcessPassIn;
 
   public CascadingRecordProducerWrapper() {
     super();
@@ -77,10 +75,69 @@ public class CascadingRecordProducerWrapper extends CascadingBaseOperationWrappe
   }
 
   public int getNumParameters() {
-    int n = (outputMethod == OutputMethod.COLLECTS ? 2 : 1);
-    if (flowProcessPassIn == FlowProcessPassIn.YES)
-      n++;
-    return n;
+    return (outputMethod == OutputMethod.COLLECTS ? 2 : 1);
+  }
+
+  /**
+   * Cast the returned or yielded array to a Tuple, and add it to the output
+   * collector.
+   * 
+   * @param ret
+   *          the object (list) returned from the Python function
+   * @param outputCollector
+   *          the output collector in which we place the Tuple
+   * @param simpleCastIfTuple
+   *          if we can simply cast ret to a Tuple, or have to call Jython's
+   *          casting
+   */
+  private void castPythonObject(Object ret, TupleEntryCollector outputCollector,
+          boolean simpleCastIfTuple) {
+    if (outputType == OutputType.AUTO) {
+      // We need to determine the type of the record now
+      if (PySequenceList.class.isInstance(ret))
+        outputType = OutputType.PYTHON_LIST;
+      else if (Tuple.class.isInstance(ret))
+        outputType = OutputType.TUPLE;
+      else if (TupleEntry.class.isInstance(ret))
+        outputType = OutputType.TUPLEENTRY;
+      else
+        throw new RuntimeException(
+                "Python function must return a list, Tuple, or TupleEnty. We got: "
+                        + ret.getClass());
+    }
+    if (outputType == OutputType.PYTHON_LIST)
+      // Convert the returned Python list to a tuple
+      // We can return both a Python (immutable) tuple and a list, so we
+      // need to use their common superclass, PySequenceList.
+      try {
+        outputCollector.add(new Tuple(((PySequenceList) ret).toArray()));
+      } catch (ClassCastException e) {
+        throw new RuntimeException(
+                "Python function or generator must return a Python list, we got " + ret.getClass()
+                        + " instead");
+      }
+    else if (outputType == OutputType.TUPLE) {
+      try {
+        // For some reason yield doesn't wrap the object in a Jython
+        // container, but return does
+        if (simpleCastIfTuple)
+          outputCollector.add((Tuple) ret);
+        else
+          outputCollector.add((Tuple) ((PyObject) ret).__tojava__(Tuple.class));
+      } catch (ClassCastException e) {
+        throw new RuntimeException(
+                "Python function or generator must return a Cascading Tuple, we got "
+                        + ret.getClass() + " instead");
+      }
+    } else {
+      try {
+        outputCollector.add((TupleEntry) ((PyObject) ret).__tojava__(TupleEntry.class));
+      } catch (ClassCastException e) {
+        throw new RuntimeException(
+                "Python function or generator must return a Cascading TupleEntry, we got "
+                        + ret.getClass() + " instead");
+      }
+    }
   }
 
   protected void collectOutput(TupleEntryCollector outputCollector, Object ret) {
@@ -93,53 +150,15 @@ public class CascadingRecordProducerWrapper extends CascadingBaseOperationWrappe
     }
     if (outputMethod == OutputMethod.RETURNS) {
       // We're simply returning records
-      Tuple tuple = null;
       // We can return None to produce no output
       if (PyNone.class.isInstance(ret))
         return;
-      if (outputType == OutputType.AUTO)
-        outputType = (PySequenceList.class.isInstance(ret) ? OutputType.PYTHON_LIST
-                : OutputType.TUPLE);
-      if (outputType == OutputType.PYTHON_LIST)
-        // Convert the returned Python list to a tuple
-        // We can return both a Python tuple and a list, so we need to use
-        // their common superclass, PySequenceList
-        try {
-          tuple = new Tuple(((PySequenceList) ret).toArray());
-        } catch (ClassCastException e) {
-          throw new RuntimeException("Python function must return a Python list, instead we got "
-                  + ret.getClass() + " instead");
-        }
-      else
-        try {
-          tuple = (Tuple) ((PyObject) ret).__tojava__(Tuple.class);
-        } catch (ClassCastException e) {
-          throw new RuntimeException("Python function must return a Cascading tuple, we got "
-                  + ret.getClass() + " instead");
-        }
-      outputCollector.add(tuple);
+      castPythonObject(ret, outputCollector, false);
     } else {
       // We have a Python generator that yields records
       for (Object record : (PyGenerator) ret) {
         if (record != null) {
-          Tuple tuple = null;
-          if (outputType == OutputType.AUTO)
-            // We need to determine the type of the record now
-            outputType = (PySequenceList.class.isInstance(record) ? OutputType.PYTHON_LIST
-                    : OutputType.TUPLE);
-          if (outputType == OutputType.PYTHON_LIST)
-            tuple = new Tuple(((PySequenceList) record).toArray());
-          else if (outputType == OutputType.TUPLE)
-            try {
-              // For some reason yield doesn't wrap the object in a Jython
-              // container, but
-              // return does
-              tuple = (Tuple) record;
-            } catch (ClassCastException e) {
-              throw new RuntimeException("Python generator must yield a Cascading tuple, we got "
-                      + record.getClass() + " instead");
-            }
-          outputCollector.add(tuple);
+          castPythonObject(record, outputCollector, true);
         }
       }
     }
@@ -151,9 +170,5 @@ public class CascadingRecordProducerWrapper extends CascadingBaseOperationWrappe
 
   public void setOutputType(OutputType outputType) {
     this.outputType = outputType;
-  }
-
-  public void setFlowProcessPassIn(FlowProcessPassIn flowProcessPassIn) {
-    this.flowProcessPassIn = flowProcessPassIn;
   }
 }

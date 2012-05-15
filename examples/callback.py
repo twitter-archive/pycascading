@@ -13,31 +13,32 @@
 # limitations under the License.
 #
 
-"""Simple word count example."""
+"""
+Contrived example showing that you can pass functions as args to a UDF.
+Also shows how to use keyword args (just the way it's expected).
+
+Thanks to ebernhardson.
+"""
 
 from pycascading.helpers import *
 
 
-@udf_map(produces=['word'])
-def split_words(tuple):
-    """The function to split the line and return several new tuples.
+def word_count_callback(value):
+    return len(value.split())
 
-    The tuple to operate on is passed in as the first parameter. We are
-    yielding the results in a for loop back. Each word becomes the only field
-    in a new tuple stream, and the string to be split is the 2nd field of the
-    input tuple.
-    """
-    for word in tuple.get(1).split():
-        yield [word]
+
+@udf_map
+def word_count(tuple, inc, second_inc, callback=None):
+    return [inc + second_inc + callback(tuple.get(1)), tuple.get(1)]
 
 
 def main():
     flow = Flow()
-    # The TextLine() scheme produces tuples where the first field is the 
-    # offset of the line in the file, and the second is the line as a string.
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
 
-    input | split_words | group_by('word', native.count()) | output
+    p = input | map_replace(
+        word_count(100, second_inc=200, callback=word_count_callback),
+        ['word_count', 'line']) | output
 
-    flow.run(num_reducers=2)
+    flow.run(num_reducers=1)

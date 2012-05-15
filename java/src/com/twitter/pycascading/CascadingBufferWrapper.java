@@ -37,7 +37,7 @@ import cascading.tuple.TupleEntryCollector;
 public class CascadingBufferWrapper extends CascadingRecordProducerWrapper implements Buffer,
         Serializable {
   private static final long serialVersionUID = -3512295576396796360L;
-  
+
   public CascadingBufferWrapper() {
     super();
   }
@@ -69,8 +69,8 @@ public class CascadingBufferWrapper extends CascadingRecordProducerWrapper imple
     @SuppressWarnings("unchecked")
     Iterator<TupleEntry> arguments = bufferCall.getArgumentsIterator();
 
-    // This gets called even when there are not tuples for grouping keys after
-    // a CoGroup (see Buffer javadoc). So we need to check if there are any
+    // This gets called even when there are no tuples in the group after
+    // a GroupBy (see the Buffer javadoc). So we need to check if there are any
     // valid tuples returned in the group.
     if (arguments.hasNext()) {
       TupleEntry group = bufferCall.getGroup();
@@ -80,12 +80,8 @@ public class CascadingBufferWrapper extends CascadingRecordProducerWrapper imple
       callArgs[1] = Py.java2py(arguments);
       if (outputMethod == OutputMethod.COLLECTS) {
         callArgs[2] = Py.java2py(outputCollector);
-        if (flowProcessPassIn == FlowProcessPassIn.YES)
-          callArgs[3] = Py.java2py(flowProcess);
         callFunction();
       } else {
-        if (flowProcessPassIn == FlowProcessPassIn.YES)
-          callArgs[2] = Py.java2py(flowProcess);
         Object ret = callFunction();
         collectOutput(outputCollector, ret);
       }

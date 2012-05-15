@@ -71,9 +71,9 @@ public class MetaScheme extends
   public static Scheme getSourceScheme(String inputPath) throws IOException {
     Path path = new Path(inputPath + "/" + schemeFileName);
     FileSystem fs = path.getFileSystem(new Configuration());
-    FSDataInputStream file = fs.open(path);
-    ObjectInputStream ois = new ObjectInputStream(file);
     try {
+      FSDataInputStream file = fs.open(path);
+      ObjectInputStream ois = new ObjectInputStream(file);
       Scheme scheme = (Scheme) ois.readObject();
       Fields fields = (Fields) ois.readObject();
       scheme.setSourceFields(fields);
@@ -176,10 +176,17 @@ public class MetaScheme extends
       try {
         if (fs.createNewFile(path)) {
           FSDataOutputStream stream = fs.create(path, true);
-          for (int i = 0; i < tupleEntry.getFields().size(); i++) {
+          for (int i = 0; i < tupleEntry.size(); i++) {
+            Comparable fieldName = null;
+            if (tupleEntry.getFields().size() < tupleEntry.size()) {
+              // We don't have names for the fields
+              fieldName = "";
+            } else {
+              fieldName = tupleEntry.getFields().get(i) + "\t";
+            }
             Object object = tupleEntry.getObject(i);
             Class<?> objectClass = (object == null ? Object.class : object.getClass());
-            stream.writeBytes(tupleEntry.getFields().get(i) + "\t" + objectClass.getName() + "\n");
+            stream.writeBytes(fieldName + objectClass.getName() + "\n");
           }
           stream.close();
         }

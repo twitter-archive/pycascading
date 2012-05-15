@@ -1,0 +1,14 @@
+.gitignore
+build/*
+*.class
+*.jar
+*.pyc
+*~
+examples/pycascading_data/out*/
+examples/pycascading_data/maps/
+examples/pycascading.cache/
+.settings/
+.classpath
+.project
+.pydevproject
+private/*

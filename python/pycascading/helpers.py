@@ -5,7 +5,7 @@
 # You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,17 +26,10 @@ assemblies, and schemes.
 __author__ = 'Gabor Szabo'
 
 
-import time, struct
-
-# Import all important PyCascading modules so we don't have to in the scripts
-from pycascading.decorators import *
-from pycascading.pipe import *
-from pycascading.tap import *
-
-# Import Java basic types for conversions
-from java.lang import Integer, Long, Float, Double, String
+import time, struct, subprocess
 
 # Import frequently used Cascading classes
+# We import these first so that we can override some global names (like Rename)
 from cascading.tuple import Fields, Tuple, TupleEntry
 from cascading.operation.aggregator import *
 from cascading.operation.filter import *
@@ -46,12 +39,25 @@ from cascading.tap import *
 from cascading.tap.hadoop import *
 from cascading.scheme.hadoop import TextLine
 
+# Import all important PyCascading modules so we don't have to in the scripts
+from pycascading.decorators import *
+from pycascading.tap import *
+from pycascading.operators import *
+from pycascading.each import *
+from pycascading.every import *
+from pycascading.cogroup import *
+# We don't import * as the name of some functions (sum) collides with Python
+import pycascading.native as native
+
+# Import Java basic types for conversions
+from java.lang import Integer, Long, Float, Double, String
+
 import com.twitter.pycascading.SelectFields
 from pycascading.pipe import coerce_to_fields
 
 
 class Getter():
-    
+
     """A wrapper for an object with 'get' and 'set' methods.
 
     If the object has a .get(key) method and a .set(key, value) method,
@@ -60,20 +66,20 @@ class Getter():
 
     def __init__(self, object):
         self.object = object
-        
+
     def __getitem__(self, key):
         return self.object.get(key)
-    
+
     def __setitem__(self, key, value):
         return self.object.set(key, value)
 
 
 def time2epoch(t):
     """Converts times in UTC to seconds since the UNIX epoch, 1/1/1970 00:00.
-    
+
     Arguments:
     t -- the time string in 'YYYY-MM-DD hh:mm:ss' format
-    
+
     Exceptions:
     Throws an exception if t is not in the right format.
     """
@@ -83,7 +89,7 @@ def time2epoch(t):
 
 def bigendian2long(b):
     """Converts a series of 4 bytes in big-endian format to a Java Long.
-    
+
     Arguments:
     b -- a string of 4 bytes that represent a word
     """
@@ -92,7 +98,7 @@ def bigendian2long(b):
 
 def bigendian2int(b):
     """Converts a series of 4 bytes in big-endian format to a Python int.
-    
+
     Arguments:
     b -- a string of 4 bytes that represent a word
     """
@@ -101,7 +107,7 @@ def bigendian2int(b):
 
 def SelectFields(fields):
     """Keeps only some fields in the tuple stream.
-    
+
     Arguments:
     fields -- a list of fields to keep, or a Cascading Fields wildcard
     """
@@ -110,10 +116,10 @@ def SelectFields(fields):
 
 def read_hdfs_tsv_file(path):
     """Read a tab-separated HDFS folder and yield the records.
-    
+
     The first line of the file should contain the name of the fields. Each
     record contains columns separated by tabs.
-    
+
     Arguments:
     path -- path to a tab-separated folder containing the data files
     """

@@ -1,3 +1,7 @@
+**NOTE AS OF 4/7/2012: We are in the process of making significant changes to
+the code base, revamping the documentation, and adding a tutorial. Please check
+back in a few days for these as well.**
+
 PyCascading
 ===========
 
@@ -34,6 +38,21 @@ More examples for the different use cases can be found in the examples folder.
 See also the the docstrings in the sources for a complete documentation of the
 arguments.
 
+To try the examples, first build the Java sources as described below in the
+Building section. Then, change to the 'examples' folder, and issue either
+
+../local_run.sh example.py
+
+for a simulated Hadoop local run, or
+
+../remote_deploy.sh -m -s hadoop_server example.py
+
+to deploy automatically on a Hadoop server. hadoop_server is the SSH address
+of an account where the master jar and script will be scp'd to. Note that the
+'-m' option has to be used only once in the beginning. The '-m' option copies
+the master jar to the server, and any subsequent deploys will use this master
+jar, and only the actual Python script will be copied over the network.
+
 
 Usage
 -----
@@ -67,11 +86,20 @@ Hadoop server.
 Building
 --------
 
-Requirements:
+Requirements for building:
 
 * Cascading 1.2.* or 2.0.0 (http://www.concurrentinc.com/downloads/)
 * Jython 2.5.2+ (http://www.jython.org/downloads.html)
-* Hadoop 0.20.2+ (http://www.apache.org/dyn/closer.cgi/hadoop/common/)
+* Hadoop 0.20.2+, the version preferably matching the Hadoop runtime
+(http://www.apache.org/dyn/closer.cgi/hadoop/common/)
+* A Java compiler
+* Ant (http://ant.apache.org/)
+
+Requirements for running:
+
+* Hadoop installed and set up on the target server (http://hadoop.apache.org/)
+* SSH access to the remote server
+* If testing scripts locally, a reasonable JVM callable by "java"
 
 PyCascading consists of Java and Python sources. Python sources need no
 compiling, but the Java part needs to be built with Ant. For this, change to
@@ -86,25 +114,6 @@ Also, check the remote_deploy.sh script and the locations defined in the
 beginning of that file on where to put the jar files on the Hadoop server.
 
 
-Versioning
-----------
-
-For transparency and insight into our release cycle, and for striving to
-maintain backwards compatibility, PyCascading will be maintained under the
-semantic versioning guidelines as much as possible. Releases will be numbered
-with the follow format:
-
-`<major>.<minor>.<patch>`
-
-And constructed with the following guidelines:
-
-* Breaking backwards compatibility bumps the major
-* New additions without breaking backwards compatibility bumps the minor
-* Bug fixes and misc changes bump the patch
-
-For more information on semantic versioning, please visit http://semver.org/.
-
-
 Bugs
 ----
 
@@ -116,7 +125,8 @@ https://github.com/twitter/pycascading/issues
 Mailing list
 ------------
 
-Currently we are using the cascading-user mailing list for discussions.
+Currently we are using the cascading-user mailing list for discussions. Any
+questions, please ask there.
 
 http://groups.google.com/group/cascading-user
 

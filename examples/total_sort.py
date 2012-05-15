@@ -13,31 +13,26 @@
 # limitations under the License.
 #
 
-"""Simple word count example."""
+"""Simple word count example with reverse sorting of the words by frequency."""
 
 from pycascading.helpers import *
 
 
-@udf_map(produces=['word'])
-def split_words(tuple):
-    """The function to split the line and return several new tuples.
-
-    The tuple to operate on is passed in as the first parameter. We are
-    yielding the results in a for loop back. Each word becomes the only field
-    in a new tuple stream, and the string to be split is the 2nd field of the
-    input tuple.
-    """
-    for word in tuple.get(1).split():
-        yield [word]
-
-
 def main():
     flow = Flow()
-    # The TextLine() scheme produces tuples where the first field is the 
-    # offset of the line in the file, and the second is the line as a string.
     input = flow.source(Hfs(TextLine(), 'pycascading_data/town.txt'))
     output = flow.tsv_sink('pycascading_data/out')
 
-    input | split_words | group_by('word', native.count()) | output
+    @udf_map
+    def split_words(tuple):
+        for word in tuple.get(1).split():
+            yield [word]
 
-    flow.run(num_reducers=2)
+    input | \
+    map_replace(split_words, 'word') | \
+    group_by('word') | \
+    native.count() | \
+    group_by(Fields.VALUES, sort_fields=['count'], reverse_order=True) | \
+    output
+
+    flow.run(num_reducers=5)
