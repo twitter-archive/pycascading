@@ -30,6 +30,8 @@ CascadingBufferWrapper
 from pycascading.pipe import Operation, coerce_to_fields, wrap_function, \
 random_pipe_name, DecoratedFunction, _Stackable
 
+from pycascading.decorators import udf
+
 
 class Every(Operation):
 

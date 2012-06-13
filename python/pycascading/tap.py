@@ -20,7 +20,6 @@ them to be named by strings when running the flow.
 
 Exports the following:
 Flow
-read_hdfs_tsv_file
 """
 
 __author__ = 'Gabor Szabo'

@@ -92,7 +92,8 @@ public class Util {
     // System.out.println("Classpath is " + strClassPath);
 
     Properties properties = new Properties();
-    properties.put("mapred.reduce.tasks", numReducers);
+    // In Cascading 2.0 we need to use strings
+    properties.put("mapred.reduce.tasks", new Integer(numReducers).toString());
     // Set this to change the default block size that is routed to one mapper
     // It won't help if the files are smaller than this as each file will go to
     // one mapper
@@ -107,8 +108,9 @@ public class Util {
             "com.twitter.pycascading.bigintegerserialization.BigIntegerSerialization,"
                     + "org.apache.hadoop.io.serializer.WritableSerialization,"
                     + "com.twitter.pycascading.pythonserialization.PythonSerialization");
-    properties.put("mapred.jobtracker.completeuserjobs.maximum", 50000);
+    properties.put("mapred.jobtracker.completeuserjobs.maximum", "50000");
     properties.put("mapred.input.dir.recursive", "true");
+    properties.put("elephantbird.mapred.input.bad.record.min", "8");
 
     // Set the running mode in the jobconf so that the mappers/reducers can
     // easily check this.

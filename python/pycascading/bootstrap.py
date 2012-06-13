@@ -54,13 +54,14 @@ if __name__ == "__main__":
     # The initial value of sys.path is JYTHONPATH plus whatever Jython appends
     # to it (normally the Python standard libraries the come with Jython)
     sys.path.extend(cascading_jar)
-    sys.path.extend(('.', tmp_dir, python_dir + '/python',
-                     python_dir + '/python/Lib'))
+    sys.path.extend((tmp_dir, python_dir + '/python',
+                     python_dir + '/python/Lib', '.'))
 
     # Allow the importing of user-installed Jython packages
     import site
-    site.addsitedir(python_dir + 'python/Lib/site-packages')
+    site.addsitedir(python_dir + '/python/Lib/site-packages')
 
+    print 'PATH:', sys.path
     import os
     import encodings
     import pycascading.pipe, getopt
@@ -75,8 +76,16 @@ if __name__ == "__main__":
             pycascading.pipe.config['pycascading.distributed_cache.archives'] \
             .append(opt[1])
 
-    # This is going to be seen by main()
-    sys.argv = args
+    if running_mode == 'hadoop':
+        # The folder where the sources were extracted to be run in hadoop mode
+        job_dir = args[0]
+        # This is going to be seen by main()
+        sys.argv = args[1:]
+        main_file = args[1]
+        physical_file = job_dir + '/' + args[1]
+    else:
+        main_file = args[0]
+        physical_file = args[0]
 
     # It's necessary to put this import here, otherwise simplejson won't work.
     # Maybe it's automatically imported in the beginning of a Jython program,
@@ -86,9 +95,8 @@ if __name__ == "__main__":
 
     # pycascading.pipe.config is a dict with configuration parameters
     pycascading.pipe.config['pycascading.running_mode'] = running_mode
-    pycascading.pipe.config['pycascading.main_file'] = args[0]
+    pycascading.pipe.config['pycascading.main_file'] = main_file
 
     # Import and run the user's script
-    _main_module_ = imp.load_source('__main__', \
-        pycascading.pipe.config['pycascading.main_file'])
+    _main_module_ = imp.load_source('__main__', physical_file)
     _main_module_.main()

@@ -24,15 +24,20 @@
 # to Hadoop. We assume we have SSH access to this server.
 server=localhost
 
+# This is the folder on the remote server where the PyCascading modules and
+# jars will be cached. $HOME is only expanded on the remote server.
+# Don't call it 'pycascading', as if we run a script from $HOME, some modules
+# will be attempted to be imported from this folder!
+server_home_dir='$HOME/.pycascading'
+
 # This is the folder on the remote server where a temporary directory is
-# going to be created for the submission. $HOME is only expanded on the
-# remote server.
-server_deploys_dir='$HOME/pycascading/deploys'
+# going to be created for the submission.
+server_deploys_dir="$server_home_dir/deploys"
 
 # The folder on the remote server where the PyCascading master jar will be
 # placed. This must be given as an absolute path name so that the master
 # files can be found from any directory.
-server_build_dir='$HOME/pycascading/master'
+server_build_dir="$server_home_dir/master"
 
 # Additional SSH options (see "man ssh"; private key, etc.)
 ssh_options=""
@@ -210,11 +215,13 @@ chmod +x "$tmp_dir/setup.sh"
 main_file=$(remove_leading_slash "$main_file")
 cat >"$tmp_dir/run.sh" <<EOF
 # Run the PyCascading job
-cd "\$(dirname "\$0")/job"
-hadoop $hadoop_options jar "$server_build_dir/pycascading.jar" \\
-"$server_build_dir/bootstrap.py" hadoop "$server_build_dir" \\
--a "$server_build_dir/pycascading.tgz" -a ../sources.tgz \\
-"$main_file" "\$@"
+job_dir=\$(dirname "\$0")
+pycascading_dir="$server_build_dir"
+#cd "\$(dirname "\$0")/job"
+hadoop $hadoop_options jar "\$pycascading_dir/pycascading.jar" \\
+"\$pycascading_dir/bootstrap.py" hadoop "\$pycascading_dir" \\
+-a "\$pycascading_dir/pycascading.tgz" -a "\$job_dir/sources.tgz" \\
+"\$job_dir/job" "$main_file" "\$@"
 EOF
 chmod +x "$tmp_dir/run.sh"
 
