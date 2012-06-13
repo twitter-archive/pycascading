@@ -1,7 +1,3 @@
-**NOTE AS OF 4/7/2012: We are in the process of making significant changes to
-the code base, revamping the documentation, and adding a tutorial. Please check
-back in a few days for these as well.**
-
 PyCascading
 ===========
 
