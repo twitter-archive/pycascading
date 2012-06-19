@@ -1,8 +1,8 @@
 PyCascading
 ===========
 
-PyCascading is a Python wrapper for Cascading. You can control the full data
-processing workflow from Python.
+PyCascading is a Python wrapper for Cascading. You can control the
+full data processing workflow from Python.
 
 * Pipelines are built with Python operators
 * User-defined functions are written in Python
@@ -15,6 +15,15 @@ Examples
 --------
 
 There can't be a big data tutorial without counting words. Here it is:
+
+    def main():
+
+        @udf(produces='word')
+        def split_words(tuple):
+            for word in tuple.get(1).split():
+                yield [word]
+
+        input | split_words | group_by('word', native.count()) | output
 
 	@map(produces=['word'])
 	def split_words(tuple):
