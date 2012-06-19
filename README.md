@@ -14,26 +14,18 @@ full data processing workflow from Python.
 Examples
 --------
 
-There can't be a big data tutorial without counting words. Here it is:
+There can't be a MapReduce tutorial without counting words. Here it is:
 
     def main():
+        ...
 
-        @udf(produces='word')
+        @udf_map(produces=['word'])
         def split_words(tuple):
-            for word in tuple.get(1).split():
+            for word in tuple.get('line').split():
                 yield [word]
 
         input | split_words | group_by('word', native.count()) | output
-
-	@map(produces=['word'])
-	def split_words(tuple):
-    	for word in tuple.get(1).split():
-        	yield [word]
-
-	def main():
-		...
-    	input | split_words | GroupBy('word') | Count() | output
-		...
+        ...
 
 Above, the user-defined function that reshapes the stream is annotated with
 a PyCascading decorator, and the workflow is created by chaining operations
