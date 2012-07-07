@@ -61,7 +61,7 @@ if __name__ == "__main__":
     import site
     site.addsitedir(python_dir + '/python/Lib/site-packages')
 
-    print 'PATH:', sys.path
+    #print 'PATH:', sys.path
     import os
     import encodings
     import pycascading.pipe, getopt

@@ -83,7 +83,7 @@ def limit(lim):
 
 
 def sample(*args):
-    return filter.Sample(lim)
+    return filter.Sample(*args)
 
 
 def un_group(*args):

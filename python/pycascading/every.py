@@ -105,7 +105,8 @@ class Every(Operation):
 
     def _create_with_parent(self, parent):
         args = self.__create_args(pipe=parent, **self.__kwargs)
-        return cascading.pipe.Every(*args)
+        every = cascading.pipe.Every(*args)
+        return cascading.pipe.Pipe(random_pipe_name('every'), every)
 
 
 class GroupBy(Operation):
@@ -174,7 +175,8 @@ class GroupBy(Operation):
         else:
             # We're chaining with a Chainable object
             args = self.__create_args(pipe=parent, **self.__kwargs)
-        return cascading.pipe.GroupBy(*args)
+        group_by = cascading.pipe.GroupBy(*args)
+        return cascading.pipe.Pipe(random_pipe_name('group'), group_by)
 
 
 class _DelayedInitialization(Operation):
