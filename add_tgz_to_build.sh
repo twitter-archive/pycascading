@@ -52,7 +52,7 @@ temp=$(mktemp -d -t PyCascading-tmp-XXXXXX)
 gzip -d <"$pycascading_dir/build/pycascading.tgz" >"$temp/pycascading.tar"
 for j in "$@"; do
     gzip -d <"$j" >"$temp/archive.tar"
-    tar -A -f "$temp/pycascading.tar" "$temp/archive.tar"
+    tar -u -f "$temp/pycascading.tar" "$temp/archive.tar"
 done
 gzip -c <"$temp/pycascading.tar" >"$pycascading_dir/build/pycascading.tgz"
 rm -rf "$temp"

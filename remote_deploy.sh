@@ -66,7 +66,8 @@ Options:
    -f <file>         Copy file to the server together with main_script, but
                      do not bundle it up for submission. This option may be
                      repeated several times for multiple files. File names
-                     cannot start with a dot.
+                     cannot start with a dot. This is useful if we need some
+                     files to set up the flow, but not on every mapper/reducer.
 
    -s <server>       The name of the remote server where Hadoop is installed,
                      and the PyCascading scripts should be deployed to.
