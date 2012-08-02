@@ -48,11 +48,19 @@ fi
 home_dir=$(pwd)
 pycascading_dir=$(dirname "$0")
 
+# BSD tar on Mac OS doesn't have the -A option, so we need to use gnutar there.
+# On Linux tar should be good.
+if which gnutar >/dev/null; then
+    tar=gnutar
+else
+    tar=tar
+fi
+
 temp=$(mktemp -d -t PyCascading-tmp-XXXXXX)
 gzip -d <"$pycascading_dir/build/pycascading.tgz" >"$temp/pycascading.tar"
 for j in "$@"; do
     gzip -d <"$j" >"$temp/archive.tar"
-    tar -u -f "$temp/pycascading.tar" "$temp/archive.tar"
+    $tar -A -f "$temp/pycascading.tar" "$temp/archive.tar"
 done
 gzip -c <"$temp/pycascading.tar" >"$pycascading_dir/build/pycascading.tgz"
 rm -rf "$temp"
