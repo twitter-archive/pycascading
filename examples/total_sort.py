@@ -32,7 +32,7 @@ def main():
     map_replace(split_words, 'word') | \
     group_by('word') | \
     native.count() | \
-    group_by(Fields.VALUES, sort_fields=['count'], reverse_order=True) | \
+    group_by(Fields.NONE, sort_fields=['count'], reverse_order=True) | \
     output
 
     flow.run(num_reducers=5)
