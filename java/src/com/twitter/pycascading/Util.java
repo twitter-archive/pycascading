@@ -110,6 +110,9 @@ public class Util {
                     + "com.twitter.pycascading.pythonserialization.PythonSerialization");
     properties.put("mapred.jobtracker.completeuserjobs.maximum", "50000");
     properties.put("mapred.input.dir.recursive", "true");
+    // This is the number of bad records that the elephantbird LzoRecordReader
+    // uses to decide about when to throw an exception
+//    properties.put("elephantbird.mapred.input.bad.record.threshold", "0.05");
     properties.put("elephantbird.mapred.input.bad.record.min", "8");
 
     // Set the running mode in the jobconf so that the mappers/reducers can
