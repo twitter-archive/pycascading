@@ -16,11 +16,9 @@
 #
 
 #
-# Extracts a jar file and adds its contents to the PyCascading jar build.
-#
-# We need to extract the jar's contents as we expect that it may contain
-# further jars, which would not be picked up if we didn't extract the
-# whole jar.
+# Adds the packaged files to the build. It is useful if we have 3rd party
+# Python libraries to be distributed together with the PyCascading master
+# build.
 #
 
 usage()
@@ -36,6 +34,10 @@ The tgz files can contain Python libraries that will be added to the search path
 
 Obviously, this script must be run after every new build of PyCascading for all
 the tgzs that should be added to the PyCascading build.
+
+When distributing other Python libraries in the master, put all sources under
+a "python/" folder in the tgz, since that is the folder that is picked up for
+the Python search path.
 
 EOF
 }
