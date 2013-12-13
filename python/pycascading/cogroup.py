@@ -31,7 +31,7 @@ class CoGroup(Operation):
     This is a PyCascading wrapper around a Cascading CoGroup.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cascading_join_class, *args, **kwargs):
         """Create a Cascading CoGroup pipe.
 
         Arguments:
@@ -52,6 +52,7 @@ class CoGroup(Operation):
         Operation.__init__(self)
         self.__args = args
         self.__kwargs = kwargs
+        self.__cascading_join_class = cascading_join_class
 
     def __create_args(self,
                       group_name=None,
@@ -107,7 +108,7 @@ class CoGroup(Operation):
             args = self.__create_args(pipes=parent.stack, **self.__kwargs)
         else:
             args = self.__create_args(pipe=parent, **self.__kwargs)
-        return cascading.pipe.CoGroup(*args)
+        return self.__cascading_join_class(*args)
 
 
 def inner_join(*args, **kwargs):
@@ -115,7 +116,7 @@ def inner_join(*args, **kwargs):
     kwargs['joiner'] = cascading.pipe.joiner.InnerJoin()
     if not 'declared_fields' in kwargs:
         kwargs['declared_fields'] = None
-    return CoGroup(*args, **kwargs)
+    return CoGroup(cascading.pipe.CoGroup, *args, **kwargs)
 
 
 def outer_join(*args, **kwargs):
@@ -123,7 +124,7 @@ def outer_join(*args, **kwargs):
     kwargs['joiner'] = cascading.pipe.joiner.OuterJoin()
     if not 'declared_fields' in kwargs:
         kwargs['declared_fields'] = None
-    return CoGroup(*args, **kwargs)
+    return CoGroup(cascading.pipe.CoGroup, *args, **kwargs)
 
 
 def left_outer_join(*args, **kwargs):
@@ -133,7 +134,7 @@ def left_outer_join(*args, **kwargs):
     kwargs['joiner'] = cascading.pipe.joiner.LeftJoin()
     if not 'declared_fields' in kwargs:
         kwargs['declared_fields'] = None
-    return CoGroup(*args, **kwargs)
+    return CoGroup(cascading.pipe.CoGroup, *args, **kwargs)
 
 
 def right_outer_join(*args, **kwargs):
@@ -141,4 +142,19 @@ def right_outer_join(*args, **kwargs):
     kwargs['joiner'] = cascading.pipe.cogroup.RightJoin()
     if not 'declared_fields' in kwargs:
         kwargs['declared_fields'] = None
-    return CoGroup(*args, **kwargs)
+    return CoGroup(cascading.pipe.CoGroup, *args, **kwargs)
+
+
+def hash_join(*args, **kwargs):
+    """Shortcut for a hash join.
+
+    All streams on the right hand side must fit in memory, and only the
+    leftmost stream can be big.
+
+    For remarks on how HashJoin can be used see the Cascading documentation,
+    http://docs.cascading.org/cascading/2.0/javadoc/cascading/pipe/HashJoin.html
+    """
+    kwargs['joiner'] = cascading.pipe.joiner.InnerJoin()
+    if not 'declared_fields' in kwargs:
+        kwargs['declared_fields'] = None
+    return CoGroup(cascading.pipe.HashJoin, *args, **kwargs)
