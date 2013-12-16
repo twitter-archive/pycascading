@@ -118,6 +118,6 @@ public class TemporaryHdfs implements FlowListener {
     FileSystem fs = dest.getFileSystem(new Configuration());
     fs.copyFromLocalFile(src, dest);
     LOG.info("copied " + src + " -> " + dest);
-    return destName;
+    return dest.toString();
   }
 }

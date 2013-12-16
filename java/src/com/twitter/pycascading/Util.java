@@ -153,6 +153,7 @@ public class Util {
         // in the parameters set into a JobConf.
         // TODO: see if a later version of Cascading can update its properties
         // using a JobConf
+        LOG.info("setting distributed cache to: " + dests);
         properties.setProperty("mapred.cache.archives", dests);
         // This creates a symlink for each of the mappers/reducers to the
         // localized files, instead of copying them for each one. This way we
