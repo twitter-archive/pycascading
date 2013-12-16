@@ -84,7 +84,7 @@ if __name__ == "__main__":
             .append(opt[1])
 
     if running_mode == 'hadoop':
-        # The folder where the sources were extracted to be run in hadoop mode
+        # The folder where the sources were extracted to be run in Hadoop mode
         job_dir = args[0]
         # This is going to be seen by main()
         sys.argv = args[1:]
