@@ -3,9 +3,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import cascading.flow.Flow;
 import cascading.flow.FlowConnector;
@@ -32,18 +34,20 @@ import cascading.tap.Tap;
 
 /**
  * Helper class that sets up the MR environment and runs a Cascading Flow.
- * 
+ *
  * @author Gabor Szabo
  */
 public class Util {
+  private static final Logger LOG = LoggerFactory.getLogger(Util.class);
+
   // http://www.velocityreviews.com/forums/t147526-how-to-get-jar-file-name.html
   /**
    * Get the temporary folder where the job jar was extracted to by Hadoop.
-   * 
+   *
    * TODO: This only works if we distribute PyCascading as classes. If I switch
    * to using jars, I need to remove the last part of the path which is the jar
    * file.
-   * 
+   *
    * @return the temporary folder with the contents of the job jar
    */
   public static String getJarFolder() {
@@ -56,7 +60,7 @@ public class Util {
 
   /**
    * Get the Cascading jar file on the local file system.
-   * 
+   *
    * @return the file location on the Hadoop worker for the Cascading jar
    */
   public static List<String> getCascadingJar() {
@@ -78,7 +82,7 @@ public class Util {
    * the Python sources for PyCascading. This is only used in local mode. This
    * is needed so that we know where to set the import path when we start up the
    * mappers and reducers.
-   * 
+   *
    * @param root
    *          the location of the PyCascading sources on the local file system
    */
@@ -112,7 +116,7 @@ public class Util {
     properties.put("mapred.input.dir.recursive", "true");
     // This is the number of bad records that the elephantbird LzoRecordReader
     // uses to decide about when to throw an exception
-//    properties.put("elephantbird.mapred.input.bad.record.threshold", "0.05");
+    // properties.put("elephantbird.mapred.input.bad.record.threshold", "0.05");
     properties.put("elephantbird.mapred.input.bad.record.min", "8");
 
     // Set the running mode in the jobconf so that the mappers/reducers can
@@ -129,10 +133,13 @@ public class Util {
       // The pycascading.distributed_cache.archives variable was set by
       // bootstrap.py, based on the command line parameters where we specified
       // the PyCascading & source archives
-      Object archives = config.get("pycascading.distributed_cache.archives");
+      @SuppressWarnings("unchecked")
+      List<String> archives = (List<String>) config.get("pycascading.distributed_cache.archives");
       if (archives != null) {
+        LOG.info("archives: " + archives);
         tempDir = new TemporaryHdfs();
         String tempDirLocation = tempDir.createTmpFolder(conf);
+        LOG.info("temporary dir: " + tempDirLocation);
         String dests = null;
         for (String archive : (Iterable<String>) archives) {
           String dest = tempDir.copyFromLocalFileToHDFS(archive);

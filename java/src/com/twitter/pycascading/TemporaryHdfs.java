@@ -6,11 +6,15 @@ import java.util.Random;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import cascading.flow.Flow;
 import cascading.flow.FlowListener;
 
 public class TemporaryHdfs implements FlowListener {
+  private static final Logger LOG = LoggerFactory.getLogger(Util.class);
+
   private boolean tmpDirCreated = false;
   private String tmpDir;
 
@@ -20,16 +24,19 @@ public class TemporaryHdfs implements FlowListener {
 
   @Override
   public void onStopping(Flow flow) {
+    LOG.info("onStopping called to remove temporary HDFS dir");
     removeTmpDir();
   }
 
   @Override
   public void onCompleted(Flow flow) {
+    LOG.info("onCompleted called to remove temporary HDFS dir");
     removeTmpDir();
   }
 
   @Override
   public boolean onThrowable(Flow flow, Throwable throwable) {
+    LOG.info("onThrowable called to remove temporary HDFS dir");
     removeTmpDir();
     throwable.printStackTrace();
     return false;
@@ -47,7 +54,7 @@ public class TemporaryHdfs implements FlowListener {
   /**
    * Create a temporary folder on HDFS. The folder will be deleted after
    * execution or on an exception.
-   * 
+   *
    * @param conf
    *          the jobconf
    * @throws IOException
@@ -64,6 +71,7 @@ public class TemporaryHdfs implements FlowListener {
     Path path = new Path(tmpDir);
     FileSystem fs = path.getFileSystem(new Configuration());
     fs.mkdirs(path);
+    LOG.info("temporary HDFS folder created: " + path);
     tmpDirCreated = true;
     return tmpDir;
   }
@@ -77,6 +85,7 @@ public class TemporaryHdfs implements FlowListener {
       try {
         FileSystem fs = path.getFileSystem(new Configuration());
         fs.delete(path, true);
+        LOG.info("temporary HDFS folder deleted: " + path);
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -95,7 +104,7 @@ public class TemporaryHdfs implements FlowListener {
    * a compressed archive, it will extract it locally. We generate a random file
    * name for the destination, but keep the extension so that zip and tgz
    * archives are recognized.
-   * 
+   *
    * @param source
    *          the path to the local file to be distributed
    * @return the path to the HDFS file
@@ -108,6 +117,7 @@ public class TemporaryHdfs implements FlowListener {
     Path dest = new Path(destName);
     FileSystem fs = dest.getFileSystem(new Configuration());
     fs.copyFromLocalFile(src, dest);
+    LOG.info("copied " + src + " -> " + dest);
     return destName;
   }
 }
