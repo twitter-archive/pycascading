@@ -27,15 +27,20 @@ __author__ = 'Gabor Szabo'
 
 import sys, imp
 
+import org.slf4j.LoggerFactory
+LOG = org.slf4j.LoggerFactory.getLogger("bootstrap.py")
+
 
 if __name__ == "__main__":
     # The first command line parameter must be 'hadoop' or 'local'
     # to indicate the running mode
     running_mode = sys.argv[1]
+    LOG.info("running mode: " + running_mode)
 
     # The second is the location of the PyCascading Python sources in local
     # mode, and the PyCascading tarball in Hadoop mode
     python_dir = sys.argv[2]
+    LOG.info("PyCascading master dir: " + python_dir)
 
     # Remove the first two arguments so that sys.argv will look like as
     # if it was coming from a simple command line execution
@@ -46,8 +51,10 @@ if __name__ == "__main__":
 
     # This is a list of jars that Cascading comes in
     cascading_jar = Util.getCascadingJar()
+    LOG.info("Cascading JAR: " + ':'.join(cascading_jar))
     # This is the folder where Hadoop extracted the jar file for execution
     tmp_dir = Util.getJarFolder()
+    LOG.info("Extracted job JAR: " + tmp_dir)
 
     Util.setPycascadingRoot(python_dir)
 
@@ -77,7 +84,7 @@ if __name__ == "__main__":
             .append(opt[1])
 
     if running_mode == 'hadoop':
-        # The folder where the sources were extracted to be run in hadoop mode
+        # The folder where the sources were extracted to be run in Hadoop mode
         job_dir = args[0]
         # This is going to be seen by main()
         sys.argv = args[1:]

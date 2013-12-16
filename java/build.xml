@@ -46,6 +46,7 @@
 		<path>
 			<fileset dir="${hadoop.home}" includes="hadoop-*-core.jar" />
 			<fileset dir="${hadoop.home}" includes="hadoop-core-*.jar" />
+			<fileset dir="${hadoop.home}/lib" includes="slf4j-*.jar" />
 		</path>
 		<path>
 			<fileset dir="${jython.home}" includes="jython.jar" />
