@@ -35,7 +35,7 @@ a PyCascading decorator, and the workflow is created by chaining operations
 into each other.
 
 More examples for the different use cases can be found in the examples folder.
-See also the the docstrings in the sources for a complete documentation of the
+See also the docstrings in the sources for a complete documentation of the
 arguments.
 
 To try the examples, first build the Java sources as described below in the
