@@ -1,3 +1,6 @@
+PyCascading is no longer maintained
+===================================
+
 PyCascading
 ===========
 
